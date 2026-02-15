@@ -1,9 +1,11 @@
 /**
  * AI Chat API Endpoint
- * Handles streaming chat requests with real tool calling using Ollama
+ * Handles streaming chat requests with tool calling
+ * Supports both Ollama (local) and Anthropic (cloud) providers
  */
 
 import { Ollama, type Message, type Tool, type ToolCall } from 'ollama';
+import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { 
   buildSystemPrompt, 
@@ -26,22 +28,30 @@ const ChatRequestSchema = z.object({
   maxTokens: z.number().positive().optional(),
 });
 
-// Get Ollama host from environment
+// ============== Configuration ==============
+
+function getLLMProvider(): string {
+  return process.env.LLM_PROVIDER || 'ollama';
+}
+
 function getOllamaHost(): string {
   return process.env.OLLAMA_HOST || 'http://localhost:11434';
 }
 
-// Get Ollama model from environment
 function getOllamaModel(): string {
   return process.env.OLLAMA_MODEL || 'llama3.2:3b';
 }
 
-// Create Ollama client
+function getAnthropicApiKey(): string | null {
+  return process.env.ANTHROPIC_API_KEY || null;
+}
+
+// ============== Ollama Functions ==============
+
 function getOllamaClient(): Ollama {
   return new Ollama({ host: getOllamaHost() });
 }
 
-// Convert our tool definitions to Ollama format
 function getOllamaTools(): Tool[] {
   return availableTools.map(tool => ({
     type: 'function' as const,
@@ -57,279 +67,308 @@ function getOllamaTools(): Tool[] {
   }));
 }
 
-// Check if Ollama is available
 async function checkOllamaAvailability(): Promise<boolean> {
   try {
     const client = getOllamaClient();
     await client.list();
     return true;
-  } catch (error) {
-    console.warn('Ollama not available:', error);
+  } catch {
     return false;
   }
 }
 
+// ============== Anthropic Functions ==============
+
+function getAnthropicClient(): Anthropic | null {
+  const apiKey = getAnthropicApiKey();
+  if (!apiKey || apiKey === 'your_anthropic_api_key_here') {
+    return null;
+  }
+  return new Anthropic({ apiKey });
+}
+
+function getAnthropicTools() {
+  return availableTools.map(tool => ({
+    name: tool.name,
+    description: tool.description,
+    input_schema: tool.parameters as { type: 'object'; properties: Record<string, unknown>; required?: string[] }
+  }));
+}
+
+// ============== Main Handler ==============
+
 export async function POST(req: Request) {
   try {
-    // Parse and validate request
     const body = await req.json();
     const validation = ChatRequestSchema.safeParse(body);
     
     if (!validation.success) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid request', 
-          details: validation.error.issues 
-        }), 
+        JSON.stringify({ error: 'Invalid request', details: validation.error.issues }), 
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
     
     const { messages, personaId, temperature = 0.7 } = validation.data;
     
-    // Get the selected persona (or default)
     const persona: Persona | undefined = personaId 
       ? personas.find(p => p.id === personaId)
       : undefined;
     
-    // Build system prompt
     const systemPrompt = buildSystemPrompt(defaultAgent, persona);
+    const provider = getLLMProvider();
     
-    // Check if Ollama is available
-    const isOllamaAvailable = await checkOllamaAvailability();
-    
-    if (!isOllamaAvailable) {
-      // Fallback to demo mode if Ollama is not available
-      console.log('Ollama not available, using demo mode');
-      return handleDemoMode(messages, persona);
+    // Route to appropriate provider
+    if (provider === 'anthropic') {
+      return await handleAnthropic(messages, persona, systemPrompt, temperature);
+    } else {
+      return await handleOllama(messages, persona, systemPrompt, temperature);
     }
     
-    // Convert messages to Ollama format
-    const ollamaMessages: Message[] = messages
-      .filter(m => m.role !== 'system')
-      .map(m => ({
-        role: m.role as 'user' | 'assistant' | 'tool',
-        content: m.content
-      }));
-    
-    // Add system message as the first message
-    ollamaMessages.unshift({
-      role: 'system',
-      content: systemPrompt
+  } catch (error) {
+    console.error('Chat API error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' }), 
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// ============== Ollama Handler ==============
+
+async function handleOllama(
+  messages: { role: string; content: string }[],
+  persona: Persona | undefined,
+  systemPrompt: string,
+  temperature: number
+) {
+  const isOllamaAvailable = await checkOllamaAvailability();
+  
+  if (!isOllamaAvailable) {
+    console.log('Ollama not available, using demo mode');
+    return handleDemoMode(messages, persona);
+  }
+  
+  const ollamaMessages: Message[] = messages
+    .filter(m => m.role !== 'system')
+    .map(m => ({ role: m.role as 'user' | 'assistant' | 'tool', content: m.content }));
+  
+  ollamaMessages.unshift({ role: 'system', content: systemPrompt });
+  
+  const client = getOllamaClient();
+  const model = getOllamaModel();
+  let finalText = '';
+  
+  for (let iteration = 0; iteration < 5; iteration++) {
+    const response = await client.chat({
+      model,
+      messages: ollamaMessages,
+      tools: getOllamaTools(),
+      options: { temperature }
     });
     
-    const client = getOllamaClient();
-    const model = getOllamaModel();
-    let finalText = '';
-    const maxToolIterations = 5;
+    const assistantMessage = response.message;
+    finalText = assistantMessage.content;
+    const toolCalls = assistantMessage.tool_calls;
     
-    // Main tool calling loop
-    for (let iteration = 0; iteration < maxToolIterations; iteration++) {
-      const response = await client.chat({
-        model,
-        messages: ollamaMessages,
-        tools: getOllamaTools(),
-        options: {
-          temperature,
-        }
-      });
+    if (!toolCalls || toolCalls.length === 0) break;
+    
+    ollamaMessages.push({ role: 'assistant', content: '', tool_calls: toolCalls as ToolCall[] });
+    
+    for (const toolCall of toolCalls) {
+      const toolName = toolCall.function.name;
+      let toolArgs = toolCall.function.arguments;
       
-      // Get the assistant's message
-      const assistantMessage = response.message;
-      finalText = assistantMessage.content;
-      
-      // Check for tool calls
-      const toolCalls = assistantMessage.tool_calls;
-      
-      if (!toolCalls || toolCalls.length === 0) {
-        // No tool calls, we're done
-        break;
+      if (typeof toolArgs === 'string') {
+        try { toolArgs = JSON.parse(toolArgs); } catch { toolArgs = {}; }
       }
       
-      // Add assistant message with tool calls to conversation
-      ollamaMessages.push({
-        role: 'assistant',
-        content: '',
-        tool_calls: toolCalls as ToolCall[]
-      });
+      console.log(`Executing tool: ${toolName}`, toolArgs);
       
-      // Execute each tool call
-      for (const toolCall of toolCalls) {
-        const toolName = toolCall.function.name;
-        let toolArgs = toolCall.function.arguments;
-        
-        // Parse arguments if they're a string
-        if (typeof toolArgs === 'string') {
-          try {
-            toolArgs = JSON.parse(toolArgs);
-          } catch {
-            toolArgs = {};
-          }
-        }
+      try {
+        const toolResult = await executeTool(toolName, toolArgs);
+        ollamaMessages.push({ role: 'tool', content: toolResult });
+      } catch (error) {
+        ollamaMessages.push({ role: 'tool', content: JSON.stringify({ error: `Tool execution failed: ${error}` }) });
+      }
+    }
+  }
+  
+  return streamResponse(finalText);
+}
+
+// ============== Anthropic Handler ==============
+
+async function handleAnthropic(
+  messages: { role: string; content: string }[],
+  persona: Persona | undefined,
+  systemPrompt: string,
+  temperature: number
+) {
+  const anthropic = getAnthropicClient();
+  
+  if (!anthropic) {
+    console.log('Anthropic not configured, using demo mode');
+    return handleDemoMode(messages, persona);
+  }
+  
+  const anthropicMessages: Anthropic.MessageParam[] = messages
+    .filter(m => m.role !== 'system')
+    .map(m => ({ 
+      role: (m.role === 'tool' ? 'assistant' : m.role) as 'user' | 'assistant', 
+      content: m.content 
+    }));
+  
+  let currentMessages = [...anthropicMessages];
+  let finalText = '';
+  
+  for (let iteration = 0; iteration < 5; iteration++) {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      temperature,
+      system: systemPrompt,
+      messages: currentMessages,
+      tools: getAnthropicTools(),
+    });
+    
+    let hasToolUse = false;
+    
+    for (const block of response.content) {
+      if (block.type === 'text') {
+        finalText += block.text;
+      } else if (block.type === 'tool_use') {
+        hasToolUse = true;
+        const toolName = block.name;
+        const toolArgs = block.input as Record<string, unknown>;
         
         console.log(`Executing tool: ${toolName}`, toolArgs);
         
         try {
           const toolResult = await executeTool(toolName, toolArgs);
           
-          // Add tool result to conversation
-          ollamaMessages.push({
-            role: 'tool',
-            content: toolResult
+          currentMessages.push({
+            role: 'assistant',
+            content: [{ type: 'tool_use', id: block.id, name: block.name, input: block.input }]
+          });
+          
+          currentMessages.push({
+            role: 'user',
+            content: [{ type: 'tool_result', tool_use_id: block.id, content: toolResult }]
           });
         } catch (error) {
-          console.error(`Tool execution error: ${toolName}`, error);
-          
-          // Add error result
-          ollamaMessages.push({
-            role: 'tool',
-            content: JSON.stringify({ error: `Tool execution failed: ${error}` })
+          currentMessages.push({
+            role: 'user',
+            content: [{ type: 'tool_result', tool_use_id: block.id, content: JSON.stringify({ error: `Tool failed: ${error}` }), is_error: true }]
           });
         }
       }
     }
     
-    // Stream the response
-    const stream = new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder();
-        const chunks = finalText.split(' ');
-        
-        for (const chunk of chunks) {
-          controller.enqueue(encoder.encode(chunk + ' '));
-          await new Promise(resolve => setTimeout(resolve, 20));
-        }
-        
-        controller.close();
-      },
-    });
-    
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache'
-      },
-    });
-    
-  } catch (error) {
-    console.error('Chat API error:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      }), 
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    if (!hasToolUse) break;
   }
+  
+  return streamResponse(finalText);
 }
 
-/**
- * Demo mode handler - when Ollama is not available
- */
+// ============== Demo Mode ==============
+
 async function handleDemoMode(
   messages: { role: string; content: string }[], 
   persona?: Persona
 ) {
   const userMessage = messages[messages.length - 1]?.content || '';
   const responseText = generateDemoResponse(userMessage, persona);
-  
+  return streamResponse(responseText);
+}
+
+function streamResponse(text: string) {
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder();
-      const chunks = responseText.split(' ');
-      
+      const chunks = text.split(' ');
       for (const chunk of chunks) {
         controller.enqueue(encoder.encode(chunk + ' '));
-        await new Promise(resolve => setTimeout(resolve, 30));
+        await new Promise(resolve => setTimeout(resolve, 20));
       }
-      
       controller.close();
     },
   });
   
   return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'no-cache'
-    },
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' }
   });
 }
 
-/**
- * Generate a demo response based on user query
- * This simulates AI behavior without requiring Ollama
- */
 function generateDemoResponse(userMessage: string, persona?: Persona): string {
   const query = userMessage.toLowerCase();
   const isRecruiter = persona?.id === 'recruiter';
   
-  // Search-related queries
-  if (query.includes('search') || query.includes('find') || query.includes('blog') || query.includes('post')) {
+  if (query.includes('search') || query.includes('find') || query.includes('blog')) {
     return isRecruiter
-      ? "I'd be happy to help you explore Daniel's blog! He has 100+ technical articles on AI, LLMs, and software development. Topics include RAG systems, local AI deployment, autonomous agents, and more. Would you like me to search for specific topics?"
-      : "I can help you explore the blog! Use the search above to find articles on AI, LLMs, RAG, autonomous agents, and software development. The blog features technical deep-dives with code examples and architecture diagrams.";
+      ? "I'd be happy to help you explore Daniel's blog! He has 100+ technical articles on AI, LLMs, and software development."
+      : "I can help you explore the blog! Use the search to find articles on AI, LLMs, RAG, autonomous agents, and more.";
   }
   
-  // Skills/ expertise queries
-  if (query.includes('skill') || query.includes('expert') || query.includes('tech') || query.includes('stack')) {
+  if (query.includes('skill') || query.includes('expert') || query.includes('tech')) {
     return isRecruiter
-      ? "Daniel's core technical expertise includes: AI/ML (LLMs, RAG, Autonomous Agents), Full-Stack Development (Next.js, React, Python), Data Engineering (Knowledge Graphs, Vector Databases), and Infrastructure (Docker, Kubernetes, MCP). He's particularly strong in AI systems and local-first architectures."
-      : "Key technical skills:\n\n**AI & ML**: LLMs, RAG, Autonomous Agents, Local LLM (Ollama), GraphRAG, Mixture of Experts\n\n**Full-Stack**: Next.js, React, TypeScript, Python, FastAPI\n\n**Data**: Knowledge Graphs, Vector Databases, Neo4j\n\n**Infrastructure**: Docker, Kubernetes, MCP";
+      ? "Daniel's core technical expertise includes: AI/ML (LLMs, RAG, Autonomous Agents), Full-Stack Development (Next.js, React, Python), Data Engineering (Knowledge Graphs, Vector Databases), and Infrastructure (Docker, Kubernetes, MCP)."
+      : "Key technical skills:\n\n**AI & ML**: LLMs, RAG, Autonomous Agents, Local LLM (Ollama), GraphRAG\n\n**Full-Stack**: Next.js, React, TypeScript, Python, FastAPI\n\n**Data**: Knowledge Graphs, Vector Databases, Neo4j\n\n**Infrastructure**: Docker, Kubernetes, MCP";
   }
   
-  // Project queries
-  if (query.includes('project') || query.includes('work') || query.includes('built') || query.includes('portfolio')) {
+  if (query.includes('project') || query.includes('work') || query.includes('portfolio')) {
     return isRecruiter
-      ? "Featured projects include: 1) Synthetic Intelligence - a local-first persona-driven AI system, 2) Dynamic Persona MoE RAG - mixture of experts architecture, 3) MCP Integration - Model Context Protocol implementations, 4) Various AI assistants and tools. All projects emphasize data sovereignty and local-first AI."
-      : "Featured Projects:\n\n1. **Synthetic Intelligence** - Local-first, dynamic persona-driven knowledge synthesis\n2. **Dynamic Persona MoE RAG** - Mixture of Experts RAG with persona modeling  \n3. **MCP Integration** - Model Context Protocol with Ollama\n4. **Vibe Coding Guide** - Document-driven development\n\nCheck out the blog for detailed technical writeups!";
+      ? "Featured projects include: 1) Synthetic Intelligence - a local-first persona-driven AI system, 2) Dynamic Persona MoE RAG - mixture of experts architecture, 3) MCP Integration - Model Context Protocol implementations."
+      : "Featured Projects:\n\n1. **Synthetic Intelligence** - Local-first, dynamic persona-driven knowledge synthesis\n2. **Dynamic Persona MoE RAG** - Mixture of Experts RAG\n3. **MCP Integration** - Model Context Protocol with Ollama\n4. **Vibe Coding Guide** - Document-driven development";
   }
   
-  // About/contact queries
-  if (query.includes('about') || query.includes('who') || query.includes('contact') || query.includes('hire')) {
+  if (query.includes('about') || query.includes('who') || query.includes('contact')) {
     return isRecruiter
-      ? "Daniel Kliewer is a Software Engineer & AI Practitioner based in Austin, Texas. He specializes in building with LLMs, autonomous agents, and local-first AI systems. He's available for freelance projects and open to full-time opportunities in AI/ML. Contact: /contact"
-      : "Hi! I'm Daniel Kliewer, a Software Engineer & AI Practitioner in Austin, Texas. I build practical AI applications - from RAG-powered research assistants to privacy-focused local AI systems. I'm passionate about data sovereignty and run everything on personal hardware. Let's connect!";
+      ? "Daniel Kliewer is a Software Engineer & AI Practitioner based in Austin, Texas. He's available for freelance projects and open to full-time opportunities in AI/ML."
+      : "Hi! I'm Daniel Kliewer, a Software Engineer & AI Practitioner in Austin, Texas. I build practical AI applications and am passionate about data sovereignty.";
   }
   
-  // Architecture/technical site queries
-  if (query.includes('site') || query.includes('this') || query.includes('architecture') || query.includes('how')) {
-    return "This portfolio is built with **Next.js 16**, **React 19**, **TypeScript**, and **Tailwind CSS**. It features:\n- Ollama for local LLM-powered AI interactions\n- Markdown-driven blog with 100+ technical articles\n- Knowledge graph visualization\n- Dynamic persona-driven AI assistant\n- Advanced search and filtering\n\nThe site demonstrates modern web architecture and AI integration patterns.";
-  }
-  
-  // Default response
   return isRecruiter
-    ? "I'm here to help you learn about Daniel Kliewer's work! I can tell you about his skills, projects, blog topics, or background. What would you like to know?"
-    : "I'm the Technical Architect AI assistant for Daniel's portfolio! I can help you:\n\n- Find relevant blog posts and articles\n- Learn about his technical skills and projects\n- Understand the site's architecture\n- Answer questions about AI/LLMs\n\nWhat would you like to explore?";
+    ? "I'm here to help you learn about Daniel's work! I can tell you about his skills, projects, blog topics, or background."
+    : "I'm the Technical Architect AI assistant! I can help you find blog posts, learn about skills/projects, or answer questions about AI/LLMs.";
 }
 
-// Handle GET requests for health checks
+// ============== Health Check ==============
+
 export async function GET() {
-  const ollamaHost = getOllamaHost();
-  const ollamaModel = getOllamaModel();
+  const provider = getLLMProvider();
+  let status = 'demo_mode';
+  let model = 'N/A';
   
-  let isOllamaAvailable = false;
-  try {
-    isOllamaAvailable = await checkOllamaAvailability();
-  } catch {
-    isOllamaAvailable = false;
+  if (provider === 'anthropic') {
+    const apiKey = getAnthropicApiKey();
+    if (apiKey && apiKey !== 'your_anthropic_api_key_here') {
+      status = 'available';
+      model = 'claude-sonnet-4-20250514';
+    }
+  } else {
+    const isOllamaAvailable = await checkOllamaAvailability();
+    if (isOllamaAvailable) {
+      status = 'available';
+      model = getOllamaModel();
+    }
   }
   
   return new Response(
     JSON.stringify({
       api_status: 'ok',
       service: 'AI Chat API',
-      version: '3.0.0',
+      version: '4.0.0',
       availablePersonas: personas.map(p => p.id),
       features: ['streaming', 'tool_calling', 'persona_selection'],
-      provider: 'ollama',
-      model: ollamaModel,
-      ollama_host: ollamaHost,
-      status: isOllamaAvailable ? 'available' : 'demo_mode'
+      provider,
+      model,
+      status,
+      configuration: {
+        local_development: 'Use LLM_PROVIDER=ollama (default)',
+        vercel_deployment: 'Set LLM_PROVIDER=anthropic and add ANTHROPIC_API_KEY to Vercel env vars'
+      }
     }),
-    { 
-      status: 200, 
-      headers: { 'Content-Type': 'application/json' } 
-    }
+    { status: 200, headers: { 'Content-Type': 'application/json' } }
   );
 }
