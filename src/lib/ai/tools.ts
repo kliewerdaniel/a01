@@ -83,11 +83,20 @@ export async function executeTool(
   toolName: string,
   args: Record<string, unknown>
 ): Promise<string> {
+  // Handle nested args format from some LLM providers
+  const toolArgs = args.args as Record<string, unknown> | undefined;
+  const effectiveArgs = toolArgs || args;
+  
   switch (toolName) {
     case 'search_documentation':
-      return await searchDocumentation(args.query as string, args.limit as number);
+      return await searchDocumentation(
+        (effectiveArgs.query as string) || '', 
+        (effectiveArgs.limit as number) || 5
+      );
     case 'get_blog_post':
-      return await getBlogPostContent(args.slug as string);
+      return await getBlogPostContent(
+        (effectiveArgs.slug as string) || ''
+      );
     case 'list_personas':
       return listPersonas();
     case 'get_site_info':

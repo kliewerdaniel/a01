@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BlogPost } from '@/lib/blog';
+import { AIChatCompact } from '@/components/ai/ai-chat';
 
 interface HomeClientProps {
   posts: BlogPost[];
@@ -755,6 +756,9 @@ export default function HomeClient({ posts: blogPosts }: HomeClientProps) {
           </motion.div>
         </div>
       </section>
+
+      {/* AI Chat Widget */}
+      <AIChatCompact />
     </div>
   );
 }

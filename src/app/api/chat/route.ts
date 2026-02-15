@@ -1,14 +1,19 @@
 /**
  * AI Chat API Endpoint
- * Handles streaming chat requests with tool calling support
+ * Handles streaming chat requests with real tool calling using Ollama
  */
 
+import { Ollama, type Message, type Tool, type ToolCall } from 'ollama';
 import { z } from 'zod';
-import { buildSystemPrompt, availableTools, executeTool } from '@/lib/ai/tools';
+import { 
+  buildSystemPrompt, 
+  availableTools, 
+  executeTool
+} from '@/lib/ai/tools';
 import { defaultAgent, personas, type Persona } from '@/lib/ai/types';
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+// Allow streaming responses up to 60 seconds
+export const maxDuration = 60;
 
 // Request validation schema
 const ChatRequestSchema = z.object({
@@ -20,6 +25,49 @@ const ChatRequestSchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().positive().optional(),
 });
+
+// Get Ollama host from environment
+function getOllamaHost(): string {
+  return process.env.OLLAMA_HOST || 'http://localhost:11434';
+}
+
+// Get Ollama model from environment
+function getOllamaModel(): string {
+  return process.env.OLLAMA_MODEL || 'llama3.2:3b';
+}
+
+// Create Ollama client
+function getOllamaClient(): Ollama {
+  return new Ollama({ host: getOllamaHost() });
+}
+
+// Convert our tool definitions to Ollama format
+function getOllamaTools(): Tool[] {
+  return availableTools.map(tool => ({
+    type: 'function' as const,
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters as {
+        type: 'object';
+        properties: Record<string, { type: string; description?: string }>;
+        required?: string[];
+      }
+    }
+  }));
+}
+
+// Check if Ollama is available
+async function checkOllamaAvailability(): Promise<boolean> {
+  try {
+    const client = getOllamaClient();
+    await client.list();
+    return true;
+  } catch (error) {
+    console.warn('Ollama not available:', error);
+    return false;
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -37,7 +85,7 @@ export async function POST(req: Request) {
       );
     }
     
-    const { messages, personaId } = validation.data;
+    const { messages, personaId, temperature = 0.7 } = validation.data;
     
     // Get the selected persona (or default)
     const persona: Persona | undefined = personaId 
@@ -47,21 +95,109 @@ export async function POST(req: Request) {
     // Build system prompt
     const systemPrompt = buildSystemPrompt(defaultAgent, persona);
     
-    // Get the latest user message
-    const userMessage = messages[messages.length - 1]?.content || '';
+    // Check if Ollama is available
+    const isOllamaAvailable = await checkOllamaAvailability();
     
-    // Generate response based on the query
-    const responseText = generateDemoResponse(userMessage, persona);
+    if (!isOllamaAvailable) {
+      // Fallback to demo mode if Ollama is not available
+      console.log('Ollama not available, using demo mode');
+      return handleDemoMode(messages, persona);
+    }
+    
+    // Convert messages to Ollama format
+    const ollamaMessages: Message[] = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({
+        role: m.role as 'user' | 'assistant' | 'tool',
+        content: m.content
+      }));
+    
+    // Add system message as the first message
+    ollamaMessages.unshift({
+      role: 'system',
+      content: systemPrompt
+    });
+    
+    const client = getOllamaClient();
+    const model = getOllamaModel();
+    let finalText = '';
+    const maxToolIterations = 5;
+    
+    // Main tool calling loop
+    for (let iteration = 0; iteration < maxToolIterations; iteration++) {
+      const response = await client.chat({
+        model,
+        messages: ollamaMessages,
+        tools: getOllamaTools(),
+        options: {
+          temperature,
+        }
+      });
+      
+      // Get the assistant's message
+      const assistantMessage = response.message;
+      finalText = assistantMessage.content;
+      
+      // Check for tool calls
+      const toolCalls = assistantMessage.tool_calls;
+      
+      if (!toolCalls || toolCalls.length === 0) {
+        // No tool calls, we're done
+        break;
+      }
+      
+      // Add assistant message with tool calls to conversation
+      ollamaMessages.push({
+        role: 'assistant',
+        content: '',
+        tool_calls: toolCalls as ToolCall[]
+      });
+      
+      // Execute each tool call
+      for (const toolCall of toolCalls) {
+        const toolName = toolCall.function.name;
+        let toolArgs = toolCall.function.arguments;
+        
+        // Parse arguments if they're a string
+        if (typeof toolArgs === 'string') {
+          try {
+            toolArgs = JSON.parse(toolArgs);
+          } catch {
+            toolArgs = {};
+          }
+        }
+        
+        console.log(`Executing tool: ${toolName}`, toolArgs);
+        
+        try {
+          const toolResult = await executeTool(toolName, toolArgs);
+          
+          // Add tool result to conversation
+          ollamaMessages.push({
+            role: 'tool',
+            content: toolResult
+          });
+        } catch (error) {
+          console.error(`Tool execution error: ${toolName}`, error);
+          
+          // Add error result
+          ollamaMessages.push({
+            role: 'tool',
+            content: JSON.stringify({ error: `Tool execution failed: ${error}` })
+          });
+        }
+      }
+    }
     
     // Stream the response
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
-        const chunks = responseText.split(' ');
+        const chunks = finalText.split(' ');
         
         for (const chunk of chunks) {
           controller.enqueue(encoder.encode(chunk + ' '));
-          await new Promise(resolve => setTimeout(resolve, 30));
+          await new Promise(resolve => setTimeout(resolve, 20));
         }
         
         controller.close();
@@ -71,7 +207,7 @@ export async function POST(req: Request) {
     return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache'
       },
     });
     
@@ -89,8 +225,40 @@ export async function POST(req: Request) {
 }
 
 /**
+ * Demo mode handler - when Ollama is not available
+ */
+async function handleDemoMode(
+  messages: { role: string; content: string }[], 
+  persona?: Persona
+) {
+  const userMessage = messages[messages.length - 1]?.content || '';
+  const responseText = generateDemoResponse(userMessage, persona);
+  
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      const chunks = responseText.split(' ');
+      
+      for (const chunk of chunks) {
+        controller.enqueue(encoder.encode(chunk + ' '));
+        await new Promise(resolve => setTimeout(resolve, 30));
+      }
+      
+      controller.close();
+    },
+  });
+  
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache'
+    },
+  });
+}
+
+/**
  * Generate a demo response based on user query
- * This simulates AI behavior without requiring an API key
+ * This simulates AI behavior without requiring Ollama
  */
 function generateDemoResponse(userMessage: string, persona?: Persona): string {
   const query = userMessage.toLowerCase();
@@ -126,7 +294,7 @@ function generateDemoResponse(userMessage: string, persona?: Persona): string {
   
   // Architecture/technical site queries
   if (query.includes('site') || query.includes('this') || query.includes('architecture') || query.includes('how')) {
-    return "This portfolio is built with **Next.js 16**, **React 19**, **TypeScript**, and **Tailwind CSS**. It features:\n- Vercel AI SDK for AI-powered interactions\n- Markdown-driven blog with 100+ technical articles\n- Knowledge graph visualization\n- Dynamic persona-driven AI assistant\n- Advanced search and filtering\n\nThe site demonstrates modern web architecture and AI integration patterns.";
+    return "This portfolio is built with **Next.js 16**, **React 19**, **TypeScript**, and **Tailwind CSS**. It features:\n- Ollama for local LLM-powered AI interactions\n- Markdown-driven blog with 100+ technical articles\n- Knowledge graph visualization\n- Dynamic persona-driven AI assistant\n- Advanced search and filtering\n\nThe site demonstrates modern web architecture and AI integration patterns.";
   }
   
   // Default response
@@ -135,15 +303,29 @@ function generateDemoResponse(userMessage: string, persona?: Persona): string {
     : "I'm the Technical Architect AI assistant for Daniel's portfolio! I can help you:\n\n- Find relevant blog posts and articles\n- Learn about his technical skills and projects\n- Understand the site's architecture\n- Answer questions about AI/LLMs\n\nWhat would you like to explore?";
 }
 
-// Also handle GET requests for health checks
+// Handle GET requests for health checks
 export async function GET() {
+  const ollamaHost = getOllamaHost();
+  const ollamaModel = getOllamaModel();
+  
+  let isOllamaAvailable = false;
+  try {
+    isOllamaAvailable = await checkOllamaAvailability();
+  } catch {
+    isOllamaAvailable = false;
+  }
+  
   return new Response(
     JSON.stringify({
-      status: 'ok',
+      api_status: 'ok',
       service: 'AI Chat API',
-      version: '1.0.0',
+      version: '3.0.0',
       availablePersonas: personas.map(p => p.id),
       features: ['streaming', 'tool_calling', 'persona_selection'],
+      provider: 'ollama',
+      model: ollamaModel,
+      ollama_host: ollamaHost,
+      status: isOllamaAvailable ? 'available' : 'demo_mode'
     }),
     { 
       status: 200, 
