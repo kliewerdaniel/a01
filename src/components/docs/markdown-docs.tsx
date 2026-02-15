@@ -24,7 +24,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // ============== Mermaid Diagram Component ==============
 
@@ -410,45 +409,4 @@ export function extractMermaidDiagrams(markdown: string): string[] {
   }
   
   return diagrams;
-}
-
-// ============== Interactive Example Component ==============
-
-interface InteractiveExampleProps {
-  title: string;
-  description: string;
-  code: string;
-  language?: string;
-}
-
-export function InteractiveExample({ 
-  title, 
-  description, 
-  code,
-  language = 'typescript'
-}: InteractiveExampleProps) {
-  return (
-    <Card className="bg-card/50 backdrop-blur-sm border-border/50 my-6">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{title}</CardTitle>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="code">
-          <TabsList className="mb-4">
-            <TabsTrigger value="code">Code</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
-          </TabsList>
-          <TabsContent value="code">
-            <CodeBlock code={code} language={language} />
-          </TabsContent>
-          <TabsContent value="preview">
-            <div className="p-8 bg-secondary/30 rounded-lg text-center text-muted-foreground">
-              Preview would render here in a live environment
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
-  );
 }

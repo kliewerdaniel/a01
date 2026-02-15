@@ -3,7 +3,6 @@
  * Handles streaming chat requests with tool calling support
  */
 
-import { StreamingTextResponse, streamText, generateText } from 'ai';
 import { z } from 'zod';
 import { buildSystemPrompt, availableTools, executeTool } from '@/lib/ai/tools';
 import { defaultAgent, personas, type Persona } from '@/lib/ai/types';
@@ -38,7 +37,7 @@ export async function POST(req: Request) {
       );
     }
     
-    const { messages, personaId, temperature, maxTokens } = validation.data;
+    const { messages, personaId } = validation.data;
     
     // Get the selected persona (or default)
     const persona: Persona | undefined = personaId 
@@ -48,55 +47,11 @@ export async function POST(req: Request) {
     // Build system prompt
     const systemPrompt = buildSystemPrompt(defaultAgent, persona);
     
-    // For demo/development, we'll use a simple response generator
-    // In production, this would call OpenAI/Anthropic/ollama APIs
+    // Get the latest user message
     const userMessage = messages[messages.length - 1]?.content || '';
     
-    // Convert tools to Vercel AI SDK format
-    const tools = availableTools.reduce((acc, tool) => {
-      acc[tool.name] = {
-        description: tool.description,
-        parameters: z.object({
-          query: z.string().optional(),
-          slug: z.string().optional(),
-          limit: z.number().optional(),
-        }),
-      };
-      return acc;
-    }, {} as Record<string, unknown>);
-    
-    // Simulate AI response with tool capabilities
-    // In production, replace with actual AI API call
-    const response = await generateText({
-      model: {
-        provider: 'custom',
-        id: 'demo-model',
-        // This is a placeholder - in production you'd use:
-        // import { openai } from 'ai-openai';
-        // or similar provider
-      },
-      system: systemPrompt,
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.content,
-      })),
-      tools,
-      temperature: temperature ?? 0.7,
-      maxTokens: maxTokens ?? 2048,
-      toolChoice: 'auto',
-      onToolCall: async ({ toolName, args }) => {
-        const result = await executeTool(toolName, args || {});
-        return result;
-      },
-    });
-    
-    // For demo purposes, generate a contextual response
-    let responseText = await response.text;
-    
-    // If no tool was called, generate a helpful response based on the query
-    if (!responseText || responseText.length < 10) {
-      responseText = generateDemoResponse(userMessage, persona);
-    }
+    // Generate response based on the query
+    const responseText = generateDemoResponse(userMessage, persona);
     
     // Stream the response
     const stream = new ReadableStream({
@@ -113,7 +68,7 @@ export async function POST(req: Request) {
       },
     });
     
-    return new StreamingTextResponse(stream, {
+    return new Response(stream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',

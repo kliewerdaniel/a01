@@ -2,8 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useUIState, useAIResponse } from 'ai/react';
-import { 
+import {
   Bot, 
   User, 
   Send, 
@@ -25,7 +24,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Select, 
   SelectContent, 
@@ -221,7 +219,7 @@ export function AIChat({
           >
             <CardContent className="p-0">
               {/* Messages */}
-              <ScrollArea className="h-[300px] p-4">
+              <div className="h-[300px] overflow-y-auto p-4">
                 <div className="space-y-4">
                   {messages.map(message => (
                     <motion.div
@@ -265,7 +263,7 @@ export function AIChat({
                   ))}
                   <div ref={messagesEndRef} />
                 </div>
-              </ScrollArea>
+              </div>
 
               {/* Input */}
               <div className="p-4 border-t border-border">

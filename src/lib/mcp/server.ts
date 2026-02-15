@@ -1,32 +1,22 @@
 /**
  * MCP (Model Context Protocol) Server Integration
  * Enables the site to interact with local data sources and tools
+ * 
+ * Note: Full MCP implementation requires additional setup.
+ * This module provides tool definitions and handlers.
  */
 
-import { 
-  Server, 
-  ServerSession, 
-  Tool, 
-  ToolExecutionOptions 
-} from '@modelcontextprotocol/sdk/server';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
-import { getBlogPosts, getBlogPost, getAllBlogSlugs } from '@/lib/blog';
-import { z } from 'zod';
+import { getBlogPosts, getBlogPost } from '@/lib/blog';
 
-// ============== MCP Tool Definitions ==============
+// ============== Tool Definitions ==============
 
-const blogSearchSchema = z.object({
-  query: z.string().describe('Search query for blog posts'),
-  limit: z.number().optional().describe('Maximum number of results')
-});
+interface ToolDefinition {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
 
-const blogGetSchema = z.object({
-  slug: z.string().describe('Blog post slug to retrieve')
-});
-
-// ============== Tool Implementations ==============
-
-const tools: Tool[] = [
+const tools: ToolDefinition[] = [
   {
     name: 'search_blog',
     description: 'Search through blog posts by keywords or topics',
@@ -53,49 +43,38 @@ const tools: Tool[] = [
   {
     name: 'list_posts',
     description: 'List all available blog posts',
-    inputSchema: {
-      type: 'object',
-      properties: {}
-    }
+    inputSchema: { type: 'object', properties: {} }
   },
   {
     name: 'get_site_info',
     description: 'Get information about the portfolio site',
-    inputSchema: {
-      type: 'object',
-      properties: {}
-    }
+    inputSchema: { type: 'object', properties: {} }
   },
   {
     name: 'get_skills',
     description: 'Get technical skills and expertise areas',
-    inputSchema: {
-      type: 'object',
-      properties: {}
-    }
+    inputSchema: { type: 'object', properties: {} }
   },
   {
     name: 'get_projects',
     description: 'Get featured projects and their details',
-    inputSchema: {
-      type: 'object',
-      properties: {}
-    }
+    inputSchema: { type: 'object', properties: {} }
   }
 ];
 
 // ============== Tool Handler ==============
 
-async function handleToolCall(
+export async function handleToolCall(
   toolName: string, 
   args: Record<string, unknown>
 ): Promise<string> {
   try {
     switch (toolName) {
       case 'search_blog': {
-        const { query, limit = 5 } = blogSearchSchema.parse(args);
+        const query = args.query as string;
+        const limit = (args.limit as number) || 5;
         const posts = getBlogPosts();
-        const queryLower = query.toLowerCase();
+        const queryLower = query?.toLowerCase() || '';
         
         const results = posts
           .map(post => {
@@ -119,7 +98,7 @@ async function handleToolCall(
       }
 
       case 'get_post': {
-        const { slug } = blogGetSchema.parse(args);
+        const slug = args.slug as string;
         const post = getBlogPost(slug);
         if (!post) {
           return JSON.stringify({ error: `Post not found: ${slug}` });
@@ -187,63 +166,4 @@ async function handleToolCall(
   }
 }
 
-// ============== MCP Server Setup ==============
-
-export async function createMCPServer() {
-  const server = new Server(
-    {
-      name: 'danielkliewer-portfolio',
-      version: '1.0.0',
-      description: 'MCP server for Daniel Kliewer\'s portfolio - provides access to blog posts, skills, and site information'
-    },
-    {
-      capabilities: {
-        tools: tools.reduce((acc, tool) => {
-          acc[tool.name] = {
-            description: tool.description,
-            inputSchema: tool.inputSchema
-          };
-          return acc;
-        }, {} as Record<string, unknown>)
-      }
-    }
-  );
-
-  // Register tool handlers
-  server.setRequestHandler('tools/list', async () => {
-    return { tools };
-  });
-
-  server.setRequestHandler('tools/call', async (request: { name: string; arguments: Record<string, unknown> }) => {
-    const result = await handleToolCall(request.name, request.arguments);
-    return {
-      content: [
-        {
-          type: 'text',
-          text: result
-        }
-      ]
-    };
-  });
-
-  return server;
-}
-
-// ============== Standalone MCP Server ==============
-
-/**
- * Run as standalone MCP server (for local development)
- * Usage: npx tsx src/lib/mcp/server.ts
- */
-export async function runStandaloneMCPServer() {
-  const server = await createMCPServer();
-  const transport = new StdioServerTransport();
-  
-  await server.connect(transport);
-  console.error('MCP Server running on stdio');
-}
-
-// Run if executed directly
-if (require.main === module) {
-  runStandaloneMCPServer().catch(console.error);
-}
+export { tools };
