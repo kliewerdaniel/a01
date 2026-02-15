@@ -57,7 +57,7 @@ SpecGen's core innovation lies in its four specialized agents that work together
 └─────────────────┘    └──────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-![SpecGen Agentic Pipeline](/art/ComfyUI_00240_.png)
+![SpecGen Agentic Pipeline](/images/ComfyUI_00240_.png)
 
 ### 1. The SpecInterpreter Agent
 
@@ -162,7 +162,7 @@ If validation fails, SpecGen can automatically attempt repairs by regenerating p
 
 At the heart of SpecGen's intelligence is its **Retrieval-Augmented Generation (RAG)** system. Unlike traditional AI code generators that rely solely on training data, SpecGen grounds its decisions in real-world examples.
 
-![RAG Knowledge Retrieval System](/art/ComfyUI_00245_.png)
+![RAG Knowledge Retrieval System](/images/ComfyUI_00240_.png)
 
 ### Knowledge Sources
 
@@ -409,7 +409,7 @@ class GeneratorAgent:
 
 ## Conclusion: A New Era of Software Development
 
-![AI-Augmented Development Future](/art/ComfyUI_00250_.png)
+![AI-Augmented Development Future](/images/ComfyUI_00240_.png)
 
 SpecGen represents a fundamental shift in how we think about code generation. By combining:
 

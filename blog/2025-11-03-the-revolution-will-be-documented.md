@@ -7,7 +7,7 @@ description: "A provocative manifesto challenging traditional gatekeeping in sof
 categories: ["AI & Machine Learning", "Development", "Methodology"]
 tags: ["AI Assisted Development", "Document Driven Development", "Software Engineering", "Vibe Coding", "Gatekeeping", "Programming Manifesto", "AI Tools", "Software Development", "Next.js", "AI Collaboration"]
 canonical_url: "https://yourdomain.com/blog/2025/11/03/the-revolution-will-be-documented"
-image: "/images/ai-development-manifesto-placeholder.jpg"
+image: "/images/ai-development-manifesto.png"
 og:title: "The Revolution Will Be Documented: AI-Assisted Development Manifesto"
 og:description: "Challenging software engineering gatekeeping with document-driven development and AI collaboration—a manifesto for the future of programming."
 og:image: "/images/ai-development-manifesto.png"

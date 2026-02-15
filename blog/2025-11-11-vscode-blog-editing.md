@@ -419,16 +419,16 @@ author: "Your Name"
 description: "Brief 150-160 character description for SEO and social sharing"
 tags: ["tag1", "tag2", "tag3"]
 canonical_url: ""
-image: "/assets/images/YYYY-MM/featured-image.png"
+image: "/images/YYYY-MM/featured-image.png"
 og:title: "OpenGraph title (can differ from main title)"
 og:description: "OpenGraph description for social sharing"
-og:image: "/assets/images/YYYY-MM/og-image.png"
+og:image: "/images/YYYY-MM/og-image.png"
 og:url: "https://yourdomain.com/blog/post-slug"
 og:type: "article"
 twitter:card: "summary_large_image"
 twitter:title: "Twitter-specific title"
 twitter:description: "Twitter-specific description"
-twitter:image: "/assets/images/YYYY-MM/twitter-image.png"
+twitter:image: "/images/YYYY-MM/twitter-image.png"
 keywords: ["primary keyword", "secondary keyword", "long-tail keyword"]
 readtime: "X min"
 difficulty: "beginner/intermediate/advanced"
@@ -538,11 +538,11 @@ Examples:
 
 **Image Paths:**
 ```
-/assets/images/YYYY-MM/descriptive-name-with-keywords.png
+/images/YYYY-MM/descriptive-name-with-keywords.png
 ```
 
 Examples:
-- ✅ `/assets/images/2025-11/vscode-setup-screenshot.png`
+- ✅ `/images/2025-11/vscode-setup-screenshot.png`
 - ❌ `/assets/IMG_1234.png` (non-descriptive)
 
 #### Content Status Workflow
@@ -625,7 +625,7 @@ author: "Daniel Kliewer"
 description: ""
 tags: []
 canonical_url: ""
-image: "/assets/images/$(date +%Y-%m)/featured.png"
+image: "/images/$(date +%Y-%m)/featured.png"
 keywords: []
 target_persona: ""
 ---

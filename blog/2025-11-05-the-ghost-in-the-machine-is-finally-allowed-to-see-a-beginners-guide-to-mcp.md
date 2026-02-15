@@ -6,16 +6,16 @@ author: "Daniel Kliewer"
 description: "Discover the Model Context Protocol (MCP) that transforms AI coding assistance by providing true context, eliminating guesswork and restoring collaboration between developers and language models."
 tags: ["MCP", "Model Context Protocol", "AI development", "vibe coding", "Large Language Models", "LLM workflow", "programming assistance", "AI tools"]
 canonical_url: "https://danielkliewer.com/blog/2025-11-05-the-ghost-in-the-machine-is-finally-allowed-to-see-a-beginners-guide-to-mcp"
-image: "/images/11052025/mcp-beginners-guide-ai-workflow-context-protocol.jpg"
+image: "/images/ComfyUI_00186_.png"
 og:title: "Unlock True AI Collaboration: MCP Beginner's Guide"
 og:description: "End the frustration of AI hallucinations in coding. Learn how MCP restores context, dignity, and partnership in AI-assisted development."
-og:image: "/images/11052025/mcp-beginners-guide-ai-workflow-context-protocol.jpg"
+og:image: "/images/11052025/ai-collaboration-partnership-mcp-protocol.jpg"
 og:url: "https://danielkliewer.com/blog/2025-11-05-the-ghost-in-the-machine-is-finally-allowed-to-see-a-beginners-guide-to-mcp"
 og:type: "article"
 twitter:card: "summary_large_image"
 twitter:title: "MCP: The AI Collaboration Revolution for Developers"
 twitter:description: "Stop describing your codebase to AI. With MCP, your AI can finally see, touch, and remember. A complete beginner's guide."
-twitter:image: "/images/11052025/mcp-beginners-guide-ai-workflow-context-protocol.jpg"
+twitter:image: "/images/11052025/ai-collaboration-partnership-mcp-protocol.jpg"
 ---
 
 ![AI collaboration partnership with MCP protocol]( /images/11052025/ai-collaboration-partnership-mcp-protocol.jpg )

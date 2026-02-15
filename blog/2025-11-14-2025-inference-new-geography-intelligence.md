@@ -6,7 +6,7 @@ author: "Daniel Kliewer"
 description: "Explore how AI inference is becoming the defining resource of the knowledge economy, reshaping geopolitics, energy infrastructure, and the future of computational power."
 tags: ["AI", "inference", "compute", "geopolitics", "data centers", "energy", "open source", "knowledge economy"]
 canonical_url: "https://danielkliewer.com/blog/inference-new-geography-intelligence"
-image: "/assets/images/inference-geography-hero.png"
+image: "/images/ComfyUI_00240_.png"
 og:title: "Inference and the New Geography of Intelligence"
 og:description: "How AI inference is reshaping global power structures and why the ability to run models at scale will define the next economic era"
 og:image: "https://danielkliewer.com/images/11132025/inference-geography-hero.png"

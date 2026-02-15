@@ -7,16 +7,16 @@ author: "Daniel Kliewer"
 description: "A detailed synthesis of insights from multiple articles exploring how AI is revolutionizing business operations, from vibe selling to intelligent customer support."
 tags: ["AI", "Business Technology", "Sales", "CRM", "Customer Management", "Productivity", "Innovation"]
 canonical_url: "/blog/"
-image: "/images/"
+image: "images/ai-job-market.png"
 og:title: "The AI Revolution in Business: Transforming Sales, CRM, and Customer Management in 2026"
 og:description: "A detailed synthesis of insights from multiple articles exploring how AI is revolutionizing business operations, from vibe selling to intelligent customer support."
-og:image: "/images/"
+og:image: "/images/ai-job-market.png"
 og:url: "/blog/"
 og:type: "article"
 twitter:card: "summary_large_image"
 twitter:title: "The AI Revolution in Business: Transforming Sales, CRM, and Customer Management in 2026"
 twitter:description: "A detailed synthesis of insights from multiple articles exploring how AI is revolutionizing business operations, from vibe selling to intelligent customer support."
-twitter:image: "/images/"
+twitter:image: "/images/ai-job-market.png"
 ---
 
 ![AI Revolution Visualization](/images/101801.png)

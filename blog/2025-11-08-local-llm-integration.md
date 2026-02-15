@@ -6,19 +6,19 @@ author: "Daniel Kliewer"
 description: "Learn how to integrate local large language models for secure, efficient tabular data processing. This comprehensive guide covers Ollama, vLLM, TGI, and ONNX runtimes with practical Python and PHP examples."
 tags: ["local-llm", "data-processing", "ollama", "machine-learning", "privacy-focused-ai", "tabular-data-analysis"]
 canonical_url: ""
-image: "/assets/images/local-llm-tabular-data-guide.png"
+image: "/images/ComfyUI_00186_.png"
 og:title: "Local LLM Integration: Secure Tabular Data Processing Guide"
 og:description: "Master local LLM deployment for parsing and summarizing tabular data. Complete tutorial with code examples, security best practices, and performance optimization."
-og:image: "/assets/images/local-llm-tabular-data-guide.png"
+og:image: "/images/11082025/local-llm-tabular-data-guide.png"
 og:url: ""
 og:type: "article"
 twitter:card: "summary_large_image"
 twitter:title: "Local LLM for Tabular Data: Complete Integration Guide"
 twitter:description: "Secure, efficient tabular data processing with local LLMs. Ollama, vLLM, TGI examples included."
-twitter:image: "/assets/images/local-llm-tabular-data-guide.png"
+twitter:image: "/images/11082025/local-llm-tabular-data-guide.png"
 ---
 
-![Local LLM Tabular Data Guide](/images/11082025/local-llm-tabular-data-guide.png.png)
+![Local LLM Tabular Data Guide](/images/11082025/local-llm-tabular-data-guide.png)
 
 # Local LLM Integration: A Pragmatic Guide to Parsing & Summarizing Tabular Data
 

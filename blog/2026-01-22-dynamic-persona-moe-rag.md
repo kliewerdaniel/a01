@@ -6,16 +6,16 @@ author: "Daniel Kliewer"
 description: "A comprehensive guide to building a dynamic, graph-based Mixture-of-Experts Retrieval-Augmented Generation system that leverages persona-driven AI agents for contextually rich responses."
 tags: ["AI", "Machine Learning", "RAG", "Mixture-of-Experts", "Knowledge Graphs", "Ollama", "Python"]
 canonical_url: "/blog/2026-01-22-dynamic-persona-moe-rag"
-image: "/images/ComfyUI_00186.png"
+image: "/images/ComfyUI_00186_.png"
 og:title: "Building a Dynamic Persona-Based Mixture-of-Experts RAG System"
 og:description: "A comprehensive guide to building a dynamic, graph-based Mixture-of-Experts Retrieval-Augmented Generation system that leverages persona-driven AI agents for contextually rich responses."
-og:image: "/images/ComfyUI_00186.png"
+og:image: "/images/ComfyUI_00186_.png"
 og:url: "/blog/2026-01-22-dynamic-persona-moe-rag"
 og:type: "article"
 twitter:card: "summary_large_image"
 twitter:title: "Building a Dynamic Persona-Based Mixture-of-Experts RAG System"
 twitter:description: "A comprehensive guide to building a dynamic, graph-based Mixture-of-Experts Retrieval-Augmented Generation system that leverages persona-driven AI agents for contextually rich responses."
-twitter:image: "/images/ComfyUI_00186.png"
+twitter:image: "/images/ComfyUI_00186_.png"
 ---
 
 ![Placeholder image](/images/ComfyUI_00186_.png)

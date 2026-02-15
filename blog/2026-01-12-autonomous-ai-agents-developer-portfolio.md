@@ -6,20 +6,20 @@ author: "Daniel Kliewer"
 description: "Comprehensive portfolio guide to building autonomous AI agents using local inference, MCP protocols, and GraphRAG. Showcase of SpecGen, MCBot01, PersonaGen, and Orthos for AI developers seeking computational sovereignty."
 tags: ["autonomous-ai-agents", "local-llm", "ollama", "mcp-protocol", "graphrag", "ai-development", "distributed-agent-systems", "computational-sovereignty", "reinforcement-learning", "rag-architecture"]
 canonical_url: "https://danielkliewer.com/blog/2026-01-12-autonomous-ai-agents-developer-portfolio"
-image: "/art/ComfyUI_00240_.png"
+image: "/images/ComfyUI_00240_.png"
 og:title: "Autonomous AI Agents: Building Distributed Systems with Local LLMs"
 og:description: "Developer portfolio showcasing autonomous AI agents, local LLM integration, MCP protocols, and GraphRAG implementations for computational sovereignty."
-og:image: "/art/ComfyUI_00240_.png"
+og:image: "/images/ComfyUI_00240_.png"
 og:url: "https://danielkliewer.com/blog/2026-01-12-autonomous-ai-agents-developer-portfolio"
 og:type: "article"
 twitter:card: "summary_large_image"
 twitter:title: "Autonomous AI Agents: Developer Portfolio & Local LLM Guide"
 twitter:description: "Build autonomous AI agents with local inference, MCP, and GraphRAG. Portfolio of SpecGen, MCBot01, and more for AI developers."
-twitter:image: "/art/ComfyUI_00240_.png"
+twitter:image: "/images/ComfyUI_00240_.png"
 ---
 
 <div className="featured-image">
-  <img src="/art/ComfyUI_00240_.png" alt="Autonomous Architectures - From Monolithic to Distributed Agent Systems" loading="lazy" />
+  <img src="/images/ComfyUI_00240_.png" alt="Autonomous Architectures - From Monolithic to Distributed Agent Systems" loading="lazy" />
 </div>
 
 # Autonomous AI Agents: Building Distributed Systems with Local LLMs - Developer Portfolio

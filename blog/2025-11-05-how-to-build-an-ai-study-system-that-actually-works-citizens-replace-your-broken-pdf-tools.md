@@ -6,16 +6,16 @@ author: "Daniel Kliewer"
 description: "Build a citation-grounded AI study system that ingests massive PDFs whole. A complete technical guide to vector databases, reranking strategies, and LLM orchestration for students tired of compromised answers."
 tags: ["AI", "LLM", "RAG", "PDF Parsing", "Study System", "Citations", "Vector Database", "Docling", "Qdrant", "Ollama"]
 canonical_url: "/blog/how-to-build-an-ai-study-system-that-actually-works-citizens-replace-your-broken-pdf-tools"
-image: "/images/11052025/recursive-agent-core-hyper-efficient-local-ai-workflows.jpg"
+image: "/images/ComfyUI_00240_.png"
 og:title: "How to Build an AI Study System That Actually Works (Citizens Replace Your Broken PDF Tools)"
 og:description: "Build a citation-grounded AI study system that ingests massive PDFs whole. A complete technical guide to vector databases, reranking strategies, and LLM orchestration for students tired of compromised answers."
-og:image: "/images/11052025/recursive-agent-core-hyper-efficient-local-ai-workflows-og.jpg"
+og:image: "/images/11052025/recursive-agent-core-architecture-diagram.png"
 og:url: "/blog/how-to-build-an-ai-study-system-that-actually-works-citizens-replace-your-broken-pdf-tools"
 og:type: "article"
 twitter:card: "summary_large_image"
 twitter:title: "How to Build an AI Study System That Actually Works (Citizens Replace Your Broken PDF Tools)"
 twitter:description: "Build a citation-grounded AI study system that ingests massive PDFs whole. A complete technical guide to vector databases, reranking strategies, and LLM orchestration for students tired of compromised answers."
-twitter:image: "/images/11052025/recursive-agent-core-hyper-efficient-local-ai-workflows-twitter.jpg"
+twitter:image: "/images/11052025/recursive-agent-core-architecture-diagram.png"
 ---
 
 ![Recursive Agent Core Architecture Diagram](/images/11052025/recursive-agent-core-architecture-diagram.png)
