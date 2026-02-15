@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { SiteNav } from "@/components/site-nav";
+import { generateMetadata, siteConfig, generateJSONLD } from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,10 +21,12 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Daniel Kliewer",
-  description: "Personal website of Daniel Kliewer - Software Engineer building with AI, LLMs, and local-first systems",
-  keywords: ["AI", "LLM", "RAG", "Software Engineer", "Python", "TypeScript", "Next.js", "Blog", "Projects"],
+export const metadata: Metadata = generateMetadata();
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -31,8 +34,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = generateJSONLD('website');
+  
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        {/* Structured Data for SEO */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLd }}
+        />
+        {/* Additional SEO */}
+        <link rel="canonical" href={siteConfig.url} />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased min-h-screen bg-background text-foreground`}
       >
@@ -40,7 +56,6 @@ export default function RootLayout({
         <main className="min-h-screen">
           {children}
         </main>
-        
       </body>
     </html>
   );
