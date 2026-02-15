@@ -7,15 +7,12 @@ import {
   NavigationMenu, 
   NavigationMenuList, 
   NavigationMenuItem, 
-  NavigationMenuLink,
-  NavigationMenuTrigger,
-  NavigationMenuContent,
   navigationMenuTriggerStyle
 } from '@/components/ui/navigation-menu';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const navItems = [
@@ -67,33 +64,35 @@ export function SiteNav() {
           <NavigationMenuList>
             {navItems.map((item, index) => (
               <NavigationMenuItem key={item.href}>
-                <Link href={item.href} legacyBehavior passHref>
-                  <NavigationMenuLink 
-                    className={navigationMenuTriggerStyle()}
-                    style={{ 
-                      backgroundColor: pathname === item.href ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                      color: pathname === item.href ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      borderRadius: '0.5rem',
-                      padding: '0.5rem 1rem',
-                      fontWeight: 500,
-                      transition: 'all 250ms ease',
-                    }}
+                <Link 
+                  href={item.href}
+                  className={cn(
+                    navigationMenuTriggerStyle(),
+                    "cursor-pointer"
+                  )}
+                  style={{ 
+                    backgroundColor: pathname === item.href ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                    color: pathname === item.href ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    borderRadius: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    fontWeight: 500,
+                    transition: 'all 250ms ease',
+                  }}
+                >
+                  <motion.span
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className="relative"
                   >
-                    <motion.span
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="relative"
-                    >
-                      {item.label}
-                      {pathname === item.href && (
-                        <motion.span 
-                          layoutId="nav-indicator"
-                          className="absolute -bottom-1 left-0 right-0 h-0.5 bg-white"
-                        />
-                      )}
-                    </motion.span>
-                  </NavigationMenuLink>
+                    {item.label}
+                    {pathname === item.href && (
+                      <motion.span 
+                        layoutId="nav-indicator"
+                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-white"
+                      />
+                    )}
+                  </motion.span>
                 </Link>
               </NavigationMenuItem>
             ))}

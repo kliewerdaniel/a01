@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Metadata } from 'next';
+import { CodeBlock } from '@/components/code-block';
+import { ScrollToTop } from '@/components/scroll-to-top';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -136,11 +138,43 @@ export default async function BlogPostPage({ params }: PageProps) {
         prose-blockquote:border-l-foreground prose-blockquote:text-muted-foreground
         prose-li:text-muted-foreground
         prose-img:rounded-lg
+        prose-pre:relative prose-pre:overflow-hidden
       ">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+        <ReactMarkdown 
+          remarkPlugins={[remarkGfm]}
+          components={{
+            code({ className, children, ...props }) {
+              const match = /language-(\w+)/.exec(className || '');
+              const isInline = !match;
+              
+              if (isInline) {
+                return (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
+                );
+              }
+              
+              return (
+                <CodeBlock className={className}>
+                  {children}
+                </CodeBlock>
+              );
+            },
+            pre({ children }) {
+              return (
+                <pre className="bg-secondary border border-border rounded-lg p-4 overflow-x-auto">
+                  {children}
+                </pre>
+              );
+            }
+          }}
+        >
           {content}
         </ReactMarkdown>
       </div>
+      
+      <ScrollToTop />
     </article>
   );
 }
