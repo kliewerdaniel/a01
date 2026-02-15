@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { Metadata } from 'next';
 import { CodeBlock } from '@/components/code-block';
 import { ScrollToTop } from '@/components/scroll-to-top';
@@ -142,6 +143,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       ">
         <ReactMarkdown 
           remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
           components={{
             code({ className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || '');
@@ -167,7 +169,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                   {children}
                 </pre>
               );
-            }
+            },
           }}
         >
           {content}
