@@ -2,6 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 
+export interface TableOfContentsItem {
+  id: string;
+  title: string;
+  level: number;
+}
+
 export interface BlogPost {
   slug: string;
   title: string;
@@ -14,6 +20,8 @@ export interface BlogPost {
   content: string;
   layout?: string;
   canonical_url?: string;
+  readingTime?: number; // in minutes
+  tableOfContents?: TableOfContentsItem[];
   og?: {
     title?: string;
     description?: string;
@@ -27,6 +35,36 @@ export interface BlogPost {
     description?: string;
     image?: string;
   };
+}
+
+// Calculate reading time based on word count (average 200 words per minute)
+export function calculateReadingTime(content: string): number {
+  const wordsPerMinute = 200;
+  const wordCount = content.trim().split(/\s+/).length;
+  return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
+}
+
+// Extract headings from markdown content for table of contents
+export function extractTableOfContents(content: string): TableOfContentsItem[] {
+  const headingRegex = /^(#{1,3})\s+(.+)$/gm;
+  const headings: TableOfContentsItem[] = [];
+  let match;
+
+  while ((match = headingRegex.exec(content)) !== null) {
+    const level = match[1].length;
+    const title = match[2].trim();
+    // Create slug from title
+    const id = title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+
+    headings.push({ id, title, level });
+  }
+
+  return headings;
 }
 
 const blogDirectory = path.join(process.cwd(), 'blog');
@@ -59,6 +97,8 @@ export function getBlogPosts(): BlogPost[] {
         content,
         layout: data.layout,
         canonical_url: data.canonical_url,
+        readingTime: calculateReadingTime(content),
+        tableOfContents: extractTableOfContents(content),
         og: data.og,
         twitter: data.twitter,
       };
@@ -94,6 +134,8 @@ export function getBlogPost(slug: string): BlogPost | null {
     content,
     layout: data.layout,
     canonical_url: data.canonical_url,
+    readingTime: calculateReadingTime(content),
+    tableOfContents: extractTableOfContents(content),
     og: data.og,
     twitter: data.twitter,
   };

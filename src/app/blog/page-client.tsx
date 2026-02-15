@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import KnowledgeGraph from '@/components/knowledge-graph';
+import { BlogSearch } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { BlogPost } from '@/lib/blog';
 
@@ -57,9 +58,9 @@ export default function BlogPageClient({ posts }: BlogPageClientProps) {
         </div>
       </section>
 
-      {/* View Toggle */}
+      {/* View Toggle & Search */}
       <section className="container px-4 mx-auto">
-        <div className="flex items-center justify-between py-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between py-4 gap-4">
           <div className="flex items-center gap-2">
             <Button
               variant={viewMode === 'list' ? 'default' : 'outline'}
@@ -82,6 +83,7 @@ export default function BlogPageClient({ posts }: BlogPageClientProps) {
               Graph View
             </Button>
           </div>
+          <BlogSearch />
         </div>
       </section>
 

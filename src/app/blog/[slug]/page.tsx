@@ -5,9 +5,13 @@ import { format } from 'date-fns';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import rehypeSlug from 'rehype-slug';
 import { Metadata } from 'next';
 import { CodeBlock } from '@/components/code-block';
 import { ScrollToTop } from '@/components/scroll-to-top';
+import Link from 'next/link';
+import { RelatedPosts } from '@/components/related-posts';
+import { Clock } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -82,98 +86,149 @@ export default async function BlogPostPage({ params }: PageProps) {
     content = content.replace(imageRegex, '');
   }
 
+  // Create search query from current post's title and tags for related posts
+  const searchQuery = [
+    post.title,
+    ...(post.tags || []),
+    post.description || '',
+  ].join(' ');
+
   return (
-    <article className="container px-4 py-16 mx-auto max-w-4xl min-h-screen bg-background">
-      {/* Header */}
-      <header className="mb-12">
-        <h1 
-          className="text-4xl md:text-5xl font-bold mb-4 text-foreground tracking-wide"
-          style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}
-        >
-          {post.title}
-        </h1>
-        
-        <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-6">
-          {post.date && (
-            <time dateTime={post.date}>{formattedDate}</time>
-          )}
-          {post.author && (
-            <span>by {post.author}</span>
-          )}
-        </div>
+    <article className="container px-4 py-16 mx-auto max-w-6xl min-h-screen bg-background">
+      <div className="lg:grid lg:grid-cols-[1fr_250px] lg:gap-12">
+        {/* Main Content */}
+        <div>
+          {/* Header */}
+          <header className="mb-12">
+            <h1 
+              className="text-4xl md:text-5xl font-bold mb-4 text-foreground tracking-wide"
+              style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}
+            >
+              {post.title}
+            </h1>
+            
+            <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-6">
+              {post.date && (
+                <time dateTime={post.date}>{formattedDate}</time>
+              )}
+              {post.author && (
+                <span>by {post.author}</span>
+              )}
+              {post.readingTime && (
+                <>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    {post.readingTime} min read
+                  </span>
+                </>
+              )}
+            </div>
 
-        {post.tags && post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {post.tags.map((tag) => (
-              <Badge 
-                key={tag} 
-                variant="secondary" 
-                className="bg-secondary text-muted-foreground border border-border"
-              >
-                {tag}
-              </Badge>
-            ))}
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {post.tags.map((tag) => (
+                  <Badge 
+                    key={tag} 
+                    variant="secondary" 
+                    className="bg-secondary text-muted-foreground border border-border"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </header>
+
+          {/* Featured Image */}
+          {post.image && (
+            <div className="mb-12">
+              <img 
+                src={post.image} 
+                alt={post.title}
+                className="w-full rounded-lg"
+              />
+            </div>
+          )}
+
+          {/* Content - High Contrast Black/White */}
+          <div className="prose prose-lg dark:prose-invert max-w-none 
+            prose-headings:text-foreground prose-headings:font-bold prose-headings:tracking-wide
+            prose-p:text-muted-foreground prose-p:leading-relaxed
+            prose-a:text-foreground prose-a:underline hover:prose-a:opacity-70
+            prose-strong:text-foreground
+            prose-code:text-foreground prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+            prose-pre:bg-secondary prose-pre:border prose-pre:border-border
+            prose-blockquote:border-l-foreground prose-blockquote:text-muted-foreground
+            prose-li:text-muted-foreground
+            prose-img:rounded-lg
+            prose-pre:relative prose-pre:overflow-hidden
+          ">
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[
+                rehypeRaw, 
+                rehypeSlug,
+              ]}
+              components={{
+                code({ className, children, ...props }) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  const isInline = !match;
+                  
+                  if (isInline) {
+                    return (
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
+                    );
+                  }
+                  
+                  return (
+                    <CodeBlock className={className}>
+                      {children}
+                    </CodeBlock>
+                  );
+                },
+                pre({ children }) {
+                  return (
+                    <pre className="bg-secondary border border-border rounded-lg p-4 overflow-x-auto">
+                      {children}
+                    </pre>
+                  );
+                },
+              }}
+            >
+              {content}
+            </ReactMarkdown>
           </div>
-        )}
-      </header>
 
-      {/* Featured Image */}
-      {post.image && (
-        <div className="mb-12">
-          <img 
-            src={post.image} 
-            alt={post.title}
-            className="w-full rounded-lg"
-          />
+          {/* Related Posts - Client Component */}
+          <RelatedPosts currentSlug={post.slug} searchQuery={searchQuery} />
         </div>
-      )}
 
-      {/* Content - High Contrast Black/White */}
-      <div className="prose prose-lg dark:prose-invert max-w-none 
-        prose-headings:text-foreground prose-headings:font-bold prose-headings:tracking-wide
-        prose-p:text-muted-foreground prose-p:leading-relaxed
-        prose-a:text-foreground prose-a:underline hover:prose-a:opacity-70
-        prose-strong:text-foreground
-        prose-code:text-foreground prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded
-        prose-pre:bg-secondary prose-pre:border prose-pre:border-border
-        prose-blockquote:border-l-foreground prose-blockquote:text-muted-foreground
-        prose-li:text-muted-foreground
-        prose-img:rounded-lg
-        prose-pre:relative prose-pre:overflow-hidden
-      ">
-        <ReactMarkdown 
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
-          components={{
-            code({ className, children, ...props }) {
-              const match = /language-(\w+)/.exec(className || '');
-              const isInline = !match;
-              
-              if (isInline) {
-                return (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                );
-              }
-              
-              return (
-                <CodeBlock className={className}>
-                  {children}
-                </CodeBlock>
-              );
-            },
-            pre({ children }) {
-              return (
-                <pre className="bg-secondary border border-border rounded-lg p-4 overflow-x-auto">
-                  {children}
-                </pre>
-              );
-            },
-          }}
-        >
-          {content}
-        </ReactMarkdown>
+        {/* Sidebar - Table of Contents */}
+        {post.tableOfContents && post.tableOfContents.length > 0 && (
+          <aside className="hidden lg:block">
+            <div className="sticky top-24">
+              <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">
+                Table of Contents
+              </h3>
+              <nav className="space-y-2">
+                {post.tableOfContents.map((item) => (
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    className={`block text-sm text-muted-foreground hover:text-foreground transition-colors ${
+                      item.level === 2 ? 'pl-0' : item.level === 3 ? 'pl-4' : ''
+                    }`}
+                  >
+                    {item.title}
+                  </a>
+                ))}
+              </nav>
+            </div>
+          </aside>
+        )}
       </div>
       
       <ScrollToTop />
