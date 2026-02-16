@@ -161,7 +161,7 @@ export function CodeBlock({ children, className }: CodeBlockProps) {
       </div>
       
       {/* Code block with syntax highlighting */}
-      <pre className="block pt-12 pb-4 px-4 bg-zinc-950 dark:bg-zinc-900 rounded-lg overflow-x-auto">
+      <pre className="block pt-16 pb-4 px-4 bg-zinc-950 dark:bg-zinc-900 rounded-lg overflow-x-auto">
         <code 
           className={className}
           dangerouslySetInnerHTML={{ __html: highlightedCode || codeText }}
