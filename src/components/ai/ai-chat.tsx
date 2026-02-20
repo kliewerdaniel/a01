@@ -27,6 +27,8 @@ interface Message {
 
 // URL regex pattern - matches HTTP/HTTPS URLs
 const urlPattern = /(https?:\/\/[^\s<]+)/g;
+// Markdown link pattern: [text](url)
+const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g;
 
 // Strip trailing punctuation that commonly appears at end of sentences
 function cleanUrl(url: string): string {
@@ -35,7 +37,128 @@ function cleanUrl(url: string): string {
 
 // Component to render message content with clickable links
 function MessageContent({ content }: { content: string }) {
-  // Use matchAll to get all URL matches with their positions
+  // First, handle markdown links [text](url) and convert to clickable links
+  const markdownMatches = [...content.matchAll(markdownLinkPattern)];
+  
+  if (markdownMatches.length > 0) {
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    
+    markdownMatches.forEach((match, index) => {
+      const fullMatch = match[0];
+      const linkText = match[1];
+      const url = match[2];
+      const startIndex = match.index ?? 0;
+      
+      // Add text before the markdown link
+      if (startIndex > lastIndex) {
+        parts.push(content.slice(lastIndex, startIndex));
+      }
+      
+      // Add the clickable link with the link text
+      parts.push(
+        <a
+          key={index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 underline break-all"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {linkText}
+        </a>
+      );
+      
+      lastIndex = startIndex + fullMatch.length;
+    });
+    
+    // Add remaining text after last markdown link
+    if (lastIndex < content.length) {
+      parts.push(content.slice(lastIndex));
+    }
+    
+    // Now check for remaining plain URLs in the parts
+    const finalParts: React.ReactNode[] = [];
+    let currentContent = '';
+    
+    parts.forEach((part) => {
+      if (typeof part === 'string') {
+        currentContent += part;
+      } else {
+        // Flush any pending plain URLs
+        if (currentContent) {
+          const urlMatches = [...currentContent.matchAll(urlPattern)];
+          if (urlMatches.length > 0) {
+            let urlLastIndex = 0;
+            urlMatches.forEach((urlMatch, i) => {
+              const url = urlMatch[1];
+              const urlStartIndex = urlMatch.index ?? 0;
+              if (urlStartIndex > urlLastIndex) {
+                finalParts.push(currentContent.slice(urlLastIndex, urlStartIndex));
+              }
+              finalParts.push(
+                <a
+                  key={`url-${i}`}
+                  href={cleanUrl(url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 underline break-all"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {cleanUrl(url)}
+                </a>
+              );
+              urlLastIndex = urlStartIndex + url.length;
+            });
+            if (urlLastIndex < currentContent.length) {
+              finalParts.push(currentContent.slice(urlLastIndex));
+            }
+          } else {
+            finalParts.push(currentContent);
+          }
+          currentContent = '';
+        }
+        finalParts.push(part);
+      }
+    });
+    
+    // Flush any remaining content
+    if (currentContent) {
+      const urlMatches = [...currentContent.matchAll(urlPattern)];
+      if (urlMatches.length > 0) {
+        let urlLastIndex = 0;
+        urlMatches.forEach((urlMatch, i) => {
+          const url = urlMatch[1];
+          const urlStartIndex = urlMatch.index ?? 0;
+          if (urlStartIndex > urlLastIndex) {
+            finalParts.push(currentContent.slice(urlLastIndex, urlStartIndex));
+          }
+          finalParts.push(
+            <a
+              key={`url-end-${i}`}
+              href={cleanUrl(url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline break-all"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {cleanUrl(url)}
+            </a>
+          );
+          urlLastIndex = urlStartIndex + url.length;
+        });
+        if (urlLastIndex < currentContent.length) {
+          finalParts.push(currentContent.slice(urlLastIndex));
+        }
+      } else {
+        finalParts.push(currentContent);
+      }
+    }
+    
+    return <p className="text-sm leading-relaxed whitespace-pre-wrap !text-black">{finalParts}</p>;
+  }
+  
+  // Original logic for plain URLs without markdown links
   const matches = [...content.matchAll(urlPattern)];
   
   if (matches.length === 0) {
@@ -84,14 +207,14 @@ function MessageContent({ content }: { content: string }) {
   );
 }
 
-// Suggested prompts - categorized by perspective
+// Suggested prompts - blog-focused for AI/LLM content
 const suggestedPrompts = [
-  { label: "Technical deep-dive", query: "Explain the technical architecture in detail with code examples" },
-  { label: "Quick overview", query: "Give me a quick summary of what Daniel builds" },
-  { label: "Research perspective", query: "What research papers or theories inform his work?" },
-  { label: "Skills & experience", query: "What are Daniel's technical skills and experience?" },
-  { label: "Blog posts", query: "Show me his blog posts about AI and LLMs" },
-  { label: "How it works", query: "How does the knowledge graph / RAG system work?" }
+  { label: "Local LLMs", query: "Tell me about running local LLMs like Ollama and llama.cpp" },
+  { label: "AI Agents", query: "Explain how AI agents and autonomous systems work" },
+  { label: "RAG Systems", query: "What is RAG and how do you build knowledge graph RAG systems?" },
+  { label: "MCP", query: "What is the Model Context Protocol (MCP) and how is it used?" },
+  { label: "Vibe Coding", query: "What is vibe coding and how does it change software development?" },
+  { label: "Synthetic Intelligence", query: "Explain the concept of synthetic intelligence and dynamic personas" }
 ];
 
 export function AIChat({ className }: { className?: string }) {
@@ -255,7 +378,7 @@ export function AIChat({ className }: { className?: string }) {
             <Bot className="w-5 h-5 text-primary-foreground" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground text-sm">Portfolio Assistant</h3>
+            <h3 className="font-semibold text-foreground text-sm">BOT</h3>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className={cn("w-2 h-2 rounded-full", isConnected ? "bg-green-500" : "bg-red-500")} />
               {isConnected ? 'Online' : 'Offline'}
@@ -420,7 +543,7 @@ export function AIChatWidget({ className }: { className?: string }) {
               exit={{ rotate: 90, opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <X className="w-6 h-6 text-white" />
+              <X className="w-6 h-6 text-black" />
             </motion.div>
           ) : (
             <motion.div
@@ -430,7 +553,7 @@ export function AIChatWidget({ className }: { className?: string }) {
               exit={{ rotate: -90, opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <Sparkles className="w-6 h-6 text-white" />
+              <Sparkles className="w-6 h-6 text-black" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -449,7 +572,7 @@ export function AIChatWidget({ className }: { className?: string }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute bottom-16 right-0 w-[90vw] md:w-[700px] lg:w-[800px] h-[80vh] md:h-[700px] rounded-2xl shadow-2xl border border-border/50 bg-background overflow-hidden"
+            className="absolute bottom-16 right-0 w-[90vw] md:w-[700px] lg:w-[800px] h-[80vh] md:h-[700px] rounded-2xl shadow-2xl border-2 border-white bg-background overflow-hidden"
           >
             <AIChat key={chatKey} />
           </motion.div>
@@ -462,7 +585,7 @@ export function AIChatWidget({ className }: { className?: string }) {
 // Inline chat for embedding in pages
 export function AIChatInline({ className }: { className?: string }) {
   return (
-    <div className={cn("w-full max-w-4xl mx-auto rounded-2xl border border-border/50 shadow-lg overflow-hidden", className)}>
+    <div className={cn("w-full max-w-4xl mx-auto rounded-2xl border-2 border-white shadow-lg overflow-hidden", className)}>
       <AIChat className="h-[500px] md:h-[600px]" />
     </div>
   );
