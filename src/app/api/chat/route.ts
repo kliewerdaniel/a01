@@ -337,21 +337,33 @@ async function handleGemini(
     tools: getGeminiTools()
   });
   
-  // Build Gemini-style messages - filter out system messages
-  const geminiMessages: Content[] = messages
-    .filter(m => m.role !== 'system')
-    .map(m => {
-      // Map assistant/tool roles to model, user stays as user
-      const role = m.role === 'user' ? 'user' : 'model';
-      return {
-        role: role as 'user' | 'model',
-        parts: [{ text: m.content }]
-      };
-    });
+  // Get the last user message - this is what we're responding to
+  const lastMessage = messages[messages.length - 1];
+  if (!lastMessage || lastMessage.role !== 'user') {
+    return streamResponse('Hello! How can I help you today?');
+  }
   
-  // Start chat with just system instruction, no initial history
-  // The user messages will be sent with sendMessage
+  // Build conversation history for Gemini
+  // Previous messages (excluding the last one we're responding to)
+  const previousMessages = messages.slice(0, -1);
+  
+  // Build history - only include user messages since Gemini generates model responses
+  // This ensures history starts with user (which is required)
+  const history: Content[] = [];
+  for (const msg of previousMessages) {
+    if (msg.role === 'user') {
+      history.push({
+        role: 'user',
+        parts: [{ text: msg.content }]
+      });
+    }
+    // Skip assistant/tool messages - Gemini will regenerate them
+    // This is a simplification but works for most cases
+  }
+  
+  // Start chat with history
   const chat = model.startChat({
+    history,
     systemInstruction: {
       role: 'system',
       parts: [{ text: systemPrompt }]
@@ -362,30 +374,17 @@ async function handleGemini(
     }
   });
   
-  // Send the first user message if exists
-  if (geminiMessages.length === 0) {
-    return streamResponse('Hello! How can I help you today?');
-  }
-  
-  // Get the last user message to send
-  const lastUserMessage = geminiMessages
-    .filter(m => m.role === 'user')
-    .pop();
-  
-  if (!lastUserMessage) {
-    return streamResponse('Hello! How can I help you today?');
-  }
-  
   let finalText = '';
   
   for (let iteration = 0; iteration < 5; iteration++) {
-    // Send the user message content
-    const userContent = lastUserMessage.parts[0]?.text || '';
-    const result = await chat.sendMessage(userContent);
+    // Send the user message
+    const result = await chat.sendMessage(lastMessage.content);
     const response = result.response;
     const candidate = response.candidates?.[0];
     
-    if (!candidate?.content?.parts) break;
+    if (!candidate?.content?.parts) {
+      break;
+    }
     
     // Check for function calls
     const functionCalls = candidate.content.parts.filter(
@@ -412,21 +411,32 @@ async function handleGemini(
       try {
         const toolResult = await executeTool(toolName, toolArgs);
         
-        // Send tool result back to the model
-        const toolResponse = await chat.sendMessage([{
-          functionResponse: {
-            name: toolName,
-            response: { result: toolResult }
+        // Send tool result back - Gemini handles this via function response
+        const toolResponse = await chat.sendMessage([
+          {
+            functionResponse: {
+              name: toolName,
+              response: { result: toolResult }
+            }
           }
-        }]);
+        ]);
         
         // Get the model's response after tool use
         const toolCandidate = toolResponse.response.candidates?.[0];
         if (toolCandidate?.content?.parts) {
-          const textParts = toolCandidate.content.parts.filter(
-            (part): part is { text: string } => 'text' in part
+          // Check if there are more function calls
+          const moreCalls = toolCandidate.content.parts.filter(
+            (part): part is { functionCall: { name: string; args: Record<string, unknown> } } => 
+              'functionCall' in part
           );
-          finalText = textParts.map(p => p.text).join('');
+          
+          if (moreCalls.length === 0) {
+            // No more function calls, get text response
+            const textParts = toolCandidate.content.parts.filter(
+              (part): part is { text: string } => 'text' in part
+            );
+            finalText = textParts.map(p => p.text).join('');
+          }
         }
       } catch (error) {
         finalText = JSON.stringify({ error: `Tool execution failed: ${error}` });
