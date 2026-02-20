@@ -25,6 +25,65 @@ interface Message {
   error?: boolean;
 }
 
+// URL regex pattern - matches HTTP/HTTPS URLs
+const urlPattern = /(https?:\/\/[^\s<]+)/g;
+
+// Strip trailing punctuation that commonly appears at end of sentences
+function cleanUrl(url: string): string {
+  return url.replace(/[.,;:!?)\]}>]+$/, '');
+}
+
+// Component to render message content with clickable links
+function MessageContent({ content }: { content: string }) {
+  // Use matchAll to get all URL matches with their positions
+  const matches = [...content.matchAll(urlPattern)];
+  
+  if (matches.length === 0) {
+    return <p className="text-sm leading-relaxed whitespace-pre-wrap !text-black">{content}</p>;
+  }
+  
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  
+  matches.forEach((match, index) => {
+    const url = match[1];
+    const startIndex = match.index ?? 0;
+    
+    // Add text before the URL
+    if (startIndex > lastIndex) {
+      parts.push(content.slice(lastIndex, startIndex));
+    }
+    
+    // Add the clickable URL
+    const cleanUrlStr = cleanUrl(url);
+    parts.push(
+      <a
+        key={index}
+        href={cleanUrlStr}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-600 hover:text-blue-800 underline break-all"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {cleanUrlStr}
+      </a>
+    );
+    
+    lastIndex = startIndex + url.length;
+  });
+  
+  // Add remaining text after last URL
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+  
+  return (
+    <p className="text-sm leading-relaxed whitespace-pre-wrap !text-black">
+      {parts}
+    </p>
+  );
+}
+
 // Suggested prompts - categorized by perspective
 const suggestedPrompts = [
   { label: "Technical deep-dive", query: "Explain the technical architecture in detail with code examples" },
@@ -248,7 +307,7 @@ export function AIChat({ className }: { className?: string }) {
                   <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               ) : (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap !text-black">{message.content}</p>
+                <MessageContent content={message.content} />
               )}
               
               {/* Copy button for assistant messages */}
@@ -331,14 +390,14 @@ export function AIChatWidget({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [chatKey, setChatKey] = useState(0);
 
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-
-  const handleOpen = () => {
-    // Reset chat context by changing the key to force remount
-    setChatKey(prev => prev + 1);
-    setIsOpen(true);
+  const handleToggle = () => {
+    if (isOpen) {
+      setIsOpen(false);
+    } else {
+      // Reset chat context by changing the key to force remount
+      setChatKey(prev => prev + 1);
+      setIsOpen(true);
+    }
   };
 
   return (
@@ -347,10 +406,10 @@ export function AIChatWidget({ className }: { className?: string }) {
       <motion.button
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        onClick={handleOpen}
+        onClick={handleToggle}
         className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-2xl flex items-center justify-center hover:scale-110 transition-transform border-2 border-white/20"
         style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
-        aria-label="Open chat"
+        aria-label={isOpen ? "Close chat" : "Open chat"}
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
