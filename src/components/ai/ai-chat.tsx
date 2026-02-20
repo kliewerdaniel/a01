@@ -27,8 +27,8 @@ interface Message {
 
 // URL regex pattern - matches HTTP/HTTPS URLs
 const urlPattern = /(https?:\/\/[^\s<]+)/g;
-// Markdown link pattern: [text](url)
-const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^\s<]+)\)/g;
+// Markdown link pattern: [text](url) - matches both http URLs and internal paths like /blog/...
+const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^\s<]+|\/[^)\s<]+)\)/g;
 
 // Strip trailing punctuation that commonly appears at end of sentences
 function cleanUrl(url: string): string {
@@ -55,7 +55,7 @@ function MessageContent({ content }: { content: string }) {
         parts.push(content.slice(lastIndex, startIndex));
       }
       
-      // Add the clickable link with the link text
+      // Add the clickable link with the link text - open all links in new tab
       parts.push(
         <a
           key={index}
@@ -207,14 +207,74 @@ function MessageContent({ content }: { content: string }) {
   );
 }
 
-// Suggested prompts - blog-focused for AI/LLM content
-const suggestedPrompts = [
-  { label: "Local LLMs", query: "Tell me about running local LLMs like Ollama and llama.cpp" },
-  { label: "AI Agents", query: "Explain how AI agents and autonomous systems work" },
-  { label: "RAG Systems", query: "What is RAG and how do you build knowledge graph RAG systems?" },
-  { label: "MCP", query: "What is the Model Context Protocol (MCP) and how is it used?" },
-  { label: "Vibe Coding", query: "What is vibe coding and how does it change software development?" },
-  { label: "Synthetic Intelligence", query: "Explain the concept of synthetic intelligence and dynamic personas" }
+// Type for suggested prompt links
+interface SuggestedPromptLink {
+  text: string;
+  url: string;
+}
+
+interface SuggestedPrompt {
+  label: string;
+  query: string;
+  links: SuggestedPromptLink[];
+}
+
+// Suggested prompts - blog-focused for AI/LLM content with relevant blog links
+const suggestedPrompts: SuggestedPrompt[] = [
+  { 
+    label: "Local LLMs", 
+    query: "Tell me about running local LLMs like Ollama and llama.cpp",
+    links: [
+      { text: "Ollama Guide", url: "/blog/2025-12-19-langchain-ollama" },
+      { text: "Local LLM Integration", url: "/blog/2025-11-08-local-llm-integration" },
+      { text: "llama.cpp Guide", url: "/blog/2025-11-12-mastering-llama-cpp-local-llm-integration-guide" }
+    ]
+  },
+  { 
+    label: "AI Agents", 
+    query: "Explain how AI agents and autonomous systems work",
+    links: [
+      { text: "Creating AI Agents", url: "/blog/2024-10-30-creating-ai-agents" },
+      { text: "Autonomous Architectures", url: "/blog/2026-01-03-autonomous-architectures" },
+      { text: "Basic Autogen", url: "/blog/2024-11-28-basic-autogen" }
+    ]
+  },
+  { 
+    label: "RAG Systems", 
+    query: "What is RAG and how do you build knowledge graph RAG systems?",
+    links: [
+      { text: "Basic RAG", url: "/blog/2024-12-01-basic-rag" },
+      { text: "Pydantic RAG", url: "/blog/2024-12-09-pydantic-rag" },
+      { text: "Building Knowledge Chatbot", url: "/blog/2026-02-19-building-knowledge-chatbot" }
+    ]
+  },
+  { 
+    label: "MCP", 
+    query: "What is the Model Context Protocol (MCP) and how is it used?",
+    links: [
+      { text: "MCP Guide", url: "/blog/2025-03-24-model-context-protocol" },
+      { text: "MCP Integration", url: "/blog/2025-12-09-mcp-integration-uncensored-chatbot" },
+      { text: "MCP with OpenAI", url: "/blog/2025-03-12-mcp-openai-agents-sdk-ollama" }
+    ]
+  },
+  { 
+    label: "Vibe Coding", 
+    query: "What is vibe coding and how does it change software development?",
+    links: [
+      { text: "Rise of Vibe Coding", url: "/blog/2025-11-02-rise-of-vibe-coding" },
+      { text: "Vibe Coding Guide", url: "/blog/2025-10-20-how-to-vibe-code-a-nextjs-boilerplate-repo" },
+      { text: "Document-Driven Dev", url: "/blog/2025-11-03-document-driven-development-nextjs-blog" }
+    ]
+  },
+  { 
+    label: "Synthetic Intelligence", 
+    query: "Explain the concept of synthetic intelligence and dynamic personas",
+    links: [
+      { text: "Synthetic Intelligence", url: "/blog/2026-01-25-synthetic-intelligence" },
+      { text: "Dynamic Persona MoE RAG", url: "/blog/2026-01-22-dynamic-persona-moe-rag" },
+      { text: "From Scaffolding to Reality", url: "/blog/2026-01-22-from-scaffolding-to-reality-building-the-dynamic-persona-moe-rag-system" }
+    ]
+  }
 ];
 
 export function AIChat({ className }: { className?: string }) {
@@ -354,8 +414,11 @@ export function AIChat({ className }: { className?: string }) {
     }
   };
 
-  const handleSuggestionClick = (query: string) => {
-    setInput(query);
+  const handleSuggestionClick = (prompt: SuggestedPrompt) => {
+    // Create a message that includes both the query and relevant links
+    const linksText = prompt.links.map(link => `[${link.text}](${link.url})`).join(' | ');
+    const fullMessage = `${prompt.query}\n\nRelevant posts: ${linksText}`;
+    setInput(fullMessage);
     inputRef.current?.focus();
   };
 
@@ -464,7 +527,7 @@ export function AIChat({ className }: { className?: string }) {
             {suggestedPrompts.map((prompt, i) => (
               <button
                 key={i}
-                onClick={() => handleSuggestionClick(prompt.query)}
+                onClick={() => handleSuggestionClick(prompt)}
                 className="text-xs px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 text-foreground transition-colors border border-border"
               >
                 {prompt.label}

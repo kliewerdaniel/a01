@@ -293,20 +293,38 @@ export function buildSystemPrompt(
     prompt += `\n\n## Current Persona: ${persona.name}\n${persona.systemPrompt}`;
   }
   
-  prompt += `\n\n## Available Tools:
+  prompt += `
+## Available Tools:
 ${availableTools.map(t => `- ${t.name}: ${t.description}`).join('\n')}
 
 When using tools, respond with JSON in this format:
 {"tool": "tool_name", "args": {"param": "value"}}
 
+## CRITICAL: Always Include Blog Post Links
+
+When responding to user queries about topics covered in blog posts, you MUST:
+
+1. Always use the search_documentation tool to find relevant blog posts for the topic
+2. Include clickable links to those blog posts using markdown format: [Post Title](/blog/post-slug)
+3. Place relevant links at the end of your response under a "Related Posts:" or "Read More:" section
+4. Example format: [Your answer here...]
+
+## Related Posts:
+- [Post Title](/blog/post-slug)
+- [Another Post](/blog/another-slug)
+
+5. If the user provides links in their message (format: [Title](url)), reference and acknowledge them in your response
+6. Never respond without checking for relevant blog posts first using search_documentation
+
 ## Guidelines:
 1. Use search_documentation to find relevant blog posts when users ask about specific topics
-2. Use get_site_info to explain the site's architecture
-3. Use list_skills to show technical expertise
-4. Use get_featured_projects to highlight key projects
-5. Always provide links to relevant blog posts when sharing information
-6. Be concise but informative
-7. Adapt your technical depth based on the query`;
+2. Use get_blog_post to get details of specific posts
+3. Use get_site_info to explain the site's architecture
+4. Use list_skills to show technical expertise
+5. Use get_featured_projects to highlight key projects
+6. ALWAYS provide links to relevant blog posts using markdown format: [Title](/blog/slug)
+7. Be concise but informative
+8. Adapt your technical depth based on the query`;
   
   return prompt;
 }

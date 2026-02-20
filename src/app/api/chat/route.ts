@@ -480,33 +480,69 @@ function generateDemoResponse(userMessage: string, persona?: Persona): string {
   const query = userMessage.toLowerCase();
   const isRecruiter = persona?.id === 'recruiter';
   
+  if (query.includes('local llm') || query.includes('ollama') || query.includes('llama.cpp')) {
+    return isRecruiter
+      ? "Daniel has extensive experience with local LLMs including Ollama and llama.cpp. He's written several guides on running LLMs locally."
+      : "Great question! Daniel has written several blog posts about running local LLMs:\n\n**Local LLM Guides:**\n- [Ollama Guide](/blog/2025-12-19-langchain-ollama)\n- [Local LLM Integration](/blog/2025-11-08-local-llm-integration)\n- [llama.cpp Guide](/blog/2025-11-12-mastering-llama-cpp-local-llm-integration-guide)";
+  }
+  
+  if (query.includes('agent') || query.includes('autonomous')) {
+    return isRecruiter
+      ? "Daniel has built multiple AI agent systems including autonomous architectures and multi-agent systems."
+      : "Here's what Daniel has written about AI agents:\n\n**AI Agents:**\n- [Creating AI Agents](/blog/2024-10-30-creating-ai-agents)\n- [Autonomous Architectures](/blog/2026-01-03-autonomous-architectures)\n- [Basic Autogen](/blog/2024-11-28-basic-autogen)";
+  }
+  
+  if (query.includes('rag') || query.includes('knowledge graph')) {
+    return isRecruiter
+      ? "Daniel has deep expertise in RAG systems including knowledge graph RAG implementations."
+      : "Here's Daniel's content on RAG systems:\n\n**RAG & Knowledge Graphs:**\n- [Basic RAG](/blog/2024-12-01-basic-rag)\n- [Pydantic RAG](/blog/2024-12-09-pydantic-rag)\n- [Building Knowledge Chatbot](/blog/2026-02-19-building-knowledge-chatbot)";
+  }
+  
+  if (query.includes('mcp') || query.includes('model context')) {
+    return isRecruiter
+      ? "Daniel has implemented the Model Context Protocol (MCP) with various LLM providers."
+      : "Here's Daniel's content on MCP:\n\n**Model Context Protocol:**\n- [MCP Guide](/blog/2025-03-24-model-context-protocol)\n- [MCP Integration](/blog/2025-12-09-mcp-integration-uncensored-chatbot)\n- [MCP with OpenAI](/blog/2025-03-12-mcp-openai-agents-sdk-ollama)";
+  }
+  
+  if (query.includes('vibe coding')) {
+    return isRecruiter
+      ? "Daniel is a strong advocate of vibe coding and document-driven development methodologies."
+      : "Here's Daniel's vibe coding content:\n\n**Vibe Coding:**\n- [Rise of Vibe Coding](/blog/2025-11-02-rise-of-vibe-coding)\n- [Vibe Coding Guide](/blog/2025-10-20-how-to-vibe-code-a-nextjs-boilerplate-repo)\n- [Document-Driven Development](/blog/2025-11-03-document-driven-development-nextjs-blog)";
+  }
+  
+  if (query.includes('synthetic intelligence') || query.includes('persona')) {
+    return isRecruiter
+      ? "Daniel created a comprehensive synthetic intelligence system with dynamic personas."
+      : "Here's Daniel's work on synthetic intelligence:\n\n**Synthetic Intelligence:**\n- [Synthetic Intelligence](/blog/2026-01-25-synthetic-intelligence)\n- [Dynamic Persona MoE RAG](/blog/2026-01-22-dynamic-persona-moe-rag)\n- [From Scaffolding to Reality](/blog/2026-01-22-from-scaffolding-to-reality-building-the-dynamic-persona-moe-rag-system)";
+  }
+  
   if (query.includes('search') || query.includes('find') || query.includes('blog')) {
     return isRecruiter
       ? "I'd be happy to help you explore Daniel's blog! He has 100+ technical articles on AI, LLMs, and software development."
-      : "I can help you explore the blog! Use the search to find articles on AI, LLMs, RAG, autonomous agents, and more.";
+      : "I can help you explore the blog! Use the search to find articles on AI, LLMs, RAG, autonomous agents, and more.\n\n**Popular Topics:**\n- [Local LLM Integration](/blog/2025-11-08-local-llm-integration)\n- [AI Agents](/blog/2024-10-30-creating-ai-agents)\n- [MCP Guide](/blog/2025-03-24-model-context-protocol)";
   }
   
   if (query.includes('skill') || query.includes('expert') || query.includes('tech')) {
     return isRecruiter
       ? "Daniel's core technical expertise includes: AI/ML (LLMs, RAG, Autonomous Agents), Full-Stack Development (Next.js, React, Python), Data Engineering (Knowledge Graphs, Vector Databases), and Infrastructure (Docker, Kubernetes, MCP)."
-      : "Key technical skills:\n\n**AI & ML**: LLMs, RAG, Autonomous Agents, Local LLM (Ollama), GraphRAG\n\n**Full-Stack**: Next.js, React, TypeScript, Python, FastAPI\n\n**Data**: Knowledge Graphs, Vector Databases, Neo4j\n\n**Infrastructure**: Docker, Kubernetes, MCP";
+      : "Key technical skills:\n\n**AI & ML**: LLMs, RAG, Autonomous Agents, Local LLM (Ollama), GraphRAG\n\n**Full-Stack**: Next.js, React, TypeScript, Python, FastAPI\n\n**Data**: Knowledge Graphs, Vector Databases, Neo4j\n\n**Infrastructure**: Docker, Kubernetes, MCP\n\n**Learn more:**\n- [Local LLM Integration](/blog/2025-11-08-local-llm-integration)\n- [Basic RAG](/blog/2024-12-01-basic-rag)";
   }
   
   if (query.includes('project') || query.includes('work') || query.includes('portfolio')) {
     return isRecruiter
       ? "Featured projects include: 1) Synthetic Intelligence - a local-first persona-driven AI system, 2) Dynamic Persona MoE RAG - mixture of experts architecture, 3) MCP Integration - Model Context Protocol implementations."
-      : "Featured Projects:\n\n1. **Synthetic Intelligence** - Local-first, dynamic persona-driven knowledge synthesis\n2. **Dynamic Persona MoE RAG** - Mixture of Experts RAG\n3. **MCP Integration** - Model Context Protocol with Ollama\n4. **Vibe Coding Guide** - Document-driven development";
+      : "Featured Projects:\n\n1. **Synthetic Intelligence** - Local-first, dynamic persona-driven knowledge synthesis\n   [Read more](/blog/2026-01-25-synthetic-intelligence)\n\n2. **Dynamic Persona MoE RAG** - Mixture of Experts RAG\n   [Read more](/blog/2026-01-22-dynamic-persona-moe-rag)\n\n3. **MCP Integration** - Model Context Protocol with Ollama\n   [Read more](/blog/2025-03-24-model-context-protocol)\n\n4. **Vibe Coding Guide** - Document-driven development\n   [Read more](/blog/2025-11-03-document-driven-development-nextjs-blog)";
   }
   
   if (query.includes('about') || query.includes('who') || query.includes('contact')) {
     return isRecruiter
       ? "Daniel Kliewer is a Software Engineer & AI Practitioner based in Austin, Texas. He's available for freelance projects and open to full-time opportunities in AI/ML."
-      : "Hi! I'm Daniel Kliewer, a Software Engineer & AI Practitioner in Austin, Texas. I build practical AI applications and am passionate about data sovereignty.";
+      : "Hi! I'm Daniel Kliewer, a Software Engineer & AI Practitioner in Austin, Texas. I build practical AI applications and am passionate about data sovereignty.\n\n[Learn more about this project](/blog/2026-02-15-building-this-blog)";
   }
   
   return isRecruiter
     ? "I'm here to help you learn about Daniel's work! I can tell you about his skills, projects, blog topics, or background."
-    : "I'm the Technical Architect AI assistant! I can help you find blog posts, learn about skills/projects, or answer questions about AI/LLMs.";
+    : "I'm the Technical Architect AI assistant! I can help you find blog posts, learn about skills/projects, or answer questions about AI/LLMs.\n\n**Try these topics:**\n- [Local LLMs](/blog/2025-11-08-local-llm-integration)\n- [AI Agents](/blog/2024-10-30-creating-ai-agents)\n- [RAG Systems](/blog/2024-12-01-basic-rag)\n- [MCP](/blog/2025-03-24-model-context-protocol)";
 }
 
 // ============== Health Check ==============
