@@ -115,9 +115,7 @@ function getGeminiClient(): GoogleGenerativeAI | null {
   if (!apiKey) {
     return null;
   }
-  return new GoogleGenerativeAI(apiKey, {
-    apiVersion: 'v1'
-  });
+  return new GoogleGenerativeAI(apiKey);
 }
 
 function getGeminiTools(): GeminiTool[] {
