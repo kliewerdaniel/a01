@@ -128,9 +128,19 @@ export function AIChat({
       }
     } catch (error) {
       console.error('Chat error:', error);
+      // Check if it's a demo mode response (when Ollama is not available)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      let fallbackContent = "I apologize, but I encountered an error. Please try again.";
+      
+      // If the error indicates Ollama is not available, provide a helpful message
+      if (errorMessage.includes('Failed to get response') || errorMessage.includes('Network Error')) {
+        fallbackContent = "I couldn't connect to the AI service. This might be because Ollama isn't running locally. The chat will work once Ollama is started, or you can try again in a moment.";
+      }
+      
       setMessages(prev => prev.map(m => 
         m.id === loadingMessage.id 
-          ? { ...m, content: "I apologize, but I encountered an error. Please try again.", isLoading: false }
+          ? { ...m, content: fallbackContent, isLoading: false }
           : m
       ));
     } finally {

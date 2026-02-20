@@ -177,59 +177,70 @@ async function handleOllama(
   systemPrompt: string,
   temperature: number
 ) {
-  const isOllamaAvailable = await checkOllamaAvailability();
+  let isOllamaAvailable = false;
+  
+  try {
+    isOllamaAvailable = await checkOllamaAvailability();
+  } catch (error) {
+    console.log('Ollama availability check failed:', error);
+  }
   
   if (!isOllamaAvailable) {
     console.log('Ollama not available, using demo mode');
     return handleDemoMode(messages, persona);
   }
   
-  const ollamaMessages: Message[] = messages
-    .filter(m => m.role !== 'system')
-    .map(m => ({ role: m.role as 'user' | 'assistant' | 'tool', content: m.content }));
-  
-  ollamaMessages.unshift({ role: 'system', content: systemPrompt });
-  
-  const client = getOllamaClient();
-  const model = getOllamaModel();
-  let finalText = '';
-  
-  for (let iteration = 0; iteration < 5; iteration++) {
-    const response = await client.chat({
-      model,
-      messages: ollamaMessages,
-      tools: getOllamaTools(),
-      options: { temperature }
-    });
+  try {
+    const ollamaMessages: Message[] = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({ role: m.role as 'user' | 'assistant' | 'tool', content: m.content }));
     
-    const assistantMessage = response.message;
-    finalText = assistantMessage.content;
-    const toolCalls = assistantMessage.tool_calls;
+    ollamaMessages.unshift({ role: 'system', content: systemPrompt });
     
-    if (!toolCalls || toolCalls.length === 0) break;
+    const client = getOllamaClient();
+    const model = getOllamaModel();
+    let finalText = '';
     
-    ollamaMessages.push({ role: 'assistant', content: '', tool_calls: toolCalls as ToolCall[] });
-    
-    for (const toolCall of toolCalls) {
-      const toolName = toolCall.function.name;
-      let toolArgs = toolCall.function.arguments;
+    for (let iteration = 0; iteration < 5; iteration++) {
+      const response = await client.chat({
+        model,
+        messages: ollamaMessages,
+        tools: getOllamaTools(),
+        options: { temperature }
+      });
       
-      if (typeof toolArgs === 'string') {
-        try { toolArgs = JSON.parse(toolArgs); } catch { toolArgs = {}; }
-      }
+      const assistantMessage = response.message;
+      finalText = assistantMessage.content;
+      const toolCalls = assistantMessage.tool_calls;
       
-      console.log(`Executing tool: ${toolName}`, toolArgs);
+      if (!toolCalls || toolCalls.length === 0) break;
       
-      try {
-        const toolResult = await executeTool(toolName, toolArgs);
-        ollamaMessages.push({ role: 'tool', content: toolResult });
-      } catch (error) {
-        ollamaMessages.push({ role: 'tool', content: JSON.stringify({ error: `Tool execution failed: ${error}` }) });
+      ollamaMessages.push({ role: 'assistant', content: '', tool_calls: toolCalls as ToolCall[] });
+      
+      for (const toolCall of toolCalls) {
+        const toolName = toolCall.function.name;
+        let toolArgs = toolCall.function.arguments;
+        
+        if (typeof toolArgs === 'string') {
+          try { toolArgs = JSON.parse(toolArgs); } catch { toolArgs = {}; }
+        }
+        
+        console.log(`Executing tool: ${toolName}`, toolArgs);
+        
+        try {
+          const toolResult = await executeTool(toolName, toolArgs);
+          ollamaMessages.push({ role: 'tool', content: toolResult });
+        } catch (error) {
+          ollamaMessages.push({ role: 'tool', content: JSON.stringify({ error: `Tool execution failed: ${error}` }) });
+        }
       }
     }
+    
+    return streamResponse(finalText);
+  } catch (error) {
+    console.error('Ollama chat error:', error);
+    return handleDemoMode(messages, persona);
   }
-  
-  return streamResponse(finalText);
 }
 
 // ============== Anthropic Handler ==============
