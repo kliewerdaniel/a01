@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bot, 
@@ -10,15 +10,7 @@ import {
   X,
   Loader2,
   Copy,
-  Check,
-  Trash2,
-  Download,
-  Wifi,
-  WifiOff,
-  Minus,
-  MoreHorizontal,
-  Maximize2,
-  Minimize2
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -43,13 +35,7 @@ const suggestedPrompts = [
   { label: "How it works", query: "How does the knowledge graph / RAG system work?" }
 ];
 
-interface AIChatProps {
-  className?: string;
-  isExpanded?: boolean;
-  onToggleExpand?: () => void;
-}
-
-export function AIChat({ className, isExpanded = false, onToggleExpand }: AIChatProps) {
+export function AIChat({ className }: { className?: string }) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -217,21 +203,6 @@ export function AIChat({ className, isExpanded = false, onToggleExpand }: AIChat
             </div>
           </div>
         </div>
-        
-        {/* Expand/Collapse Toggle Button */}
-        {onToggleExpand && (
-          <button
-            onClick={onToggleExpand}
-            className="p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
-            title={isExpanded ? "Minimize chat" : "Maximize chat"}
-          >
-            {isExpanded ? (
-              <Minimize2 className="w-4 h-4" />
-            ) : (
-              <Maximize2 className="w-4 h-4" />
-            )}
-          </button>
-        )}
       </div>
 
       {/* Messages Area */}
@@ -358,15 +329,6 @@ export function AIChat({ className, isExpanded = false, onToggleExpand }: AIChat
 // Floating chat button + panel
 export function AIChatWidget({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // Small size dimensions
-  const smallWidth = "w-[380px] md:w-[420px]";
-  const smallHeight = "h-[520px] md:h-[560px]";
-  
-  // Large size dimensions
-  const largeWidth = "w-[90vw] md:w-[700px] lg:w-[800px]";
-  const largeHeight = "h-[80vh] md:h-[700px]";
 
   return (
     <div className={cn("fixed bottom-6 right-6 z-[9999]", className)}>
@@ -417,16 +379,9 @@ export function AIChatWidget({ className }: { className?: string }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={cn(
-              "absolute bottom-16 right-0 rounded-2xl shadow-2xl border border-border/50 bg-background overflow-hidden",
-              isExpanded ? largeWidth : smallWidth,
-              isExpanded ? largeHeight : smallHeight
-            )}
+            className="absolute bottom-16 right-0 w-[90vw] md:w-[700px] lg:w-[800px] h-[80vh] md:h-[700px] rounded-2xl shadow-2xl border border-border/50 bg-background overflow-hidden"
           >
-            <AIChat 
-              isExpanded={isExpanded} 
-              onToggleExpand={() => setIsExpanded(!isExpanded)} 
-            />
+            <AIChat />
           </motion.div>
         )}
       </AnimatePresence>
