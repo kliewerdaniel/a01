@@ -329,6 +329,17 @@ export function AIChat({ className }: { className?: string }) {
 // Floating chat button + panel
 export function AIChatWidget({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [chatKey, setChatKey] = useState(0);
+
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  const handleOpen = () => {
+    // Reset chat context by changing the key to force remount
+    setChatKey(prev => prev + 1);
+    setIsOpen(true);
+  };
 
   return (
     <div className={cn("fixed bottom-6 right-6 z-[9999]", className)}>
@@ -336,7 +347,7 @@ export function AIChatWidget({ className }: { className?: string }) {
       <motion.button
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleOpen}
         className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-2xl flex items-center justify-center hover:scale-110 transition-transform border-2 border-white/20"
         style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
         aria-label="Open chat"
@@ -381,7 +392,7 @@ export function AIChatWidget({ className }: { className?: string }) {
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="absolute bottom-16 right-0 w-[90vw] md:w-[700px] lg:w-[800px] h-[80vh] md:h-[700px] rounded-2xl shadow-2xl border border-border/50 bg-background overflow-hidden"
           >
-            <AIChat />
+            <AIChat key={chatKey} />
           </motion.div>
         )}
       </AnimatePresence>
