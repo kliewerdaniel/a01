@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bot, 
@@ -220,7 +220,8 @@ interface SuggestedPrompt {
 }
 
 // Suggested prompts - blog-focused for AI/LLM content with relevant blog links
-const suggestedPrompts: SuggestedPrompt[] = [
+// Note: These will be filtered to only include valid blog posts
+const suggestedPromptsBase: SuggestedPrompt[] = [
   { 
     label: "Local LLMs", 
     query: "Tell me about running local LLMs like Ollama and llama.cpp",
@@ -277,6 +278,25 @@ const suggestedPrompts: SuggestedPrompt[] = [
   }
 ];
 
+// Extract slug from URL like "/blog/slug"
+function extractSlugFromUrl(url: string): string {
+  const match = url.match(/^\/blog\/(.+)$/);
+  return match ? match[1] : '';
+}
+
+// Filter prompts to only include links with valid slugs
+function filterValidPrompts(prompts: SuggestedPrompt[], validSlugs: Set<string>): SuggestedPrompt[] {
+  return prompts
+    .map(prompt => ({
+      ...prompt,
+      links: prompt.links.filter(link => {
+        const slug = extractSlugFromUrl(link.url);
+        return slug && validSlugs.has(slug);
+      })
+    }))
+    .filter(prompt => prompt.links.length > 0);
+}
+
 export function AIChat({ className }: { className?: string }) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -290,10 +310,32 @@ export function AIChat({ className }: { className?: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(true);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [validSlugs, setValidSlugs] = useState<Set<string>>(new Set());
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch valid blog slugs on mount
+  useEffect(() => {
+    async function fetchValidSlugs() {
+      try {
+        const response = await fetch('/api/blog-slugs');
+        const data = await response.json();
+        if (data.slugs && Array.isArray(data.slugs)) {
+          setValidSlugs(new Set(data.slugs));
+        }
+      } catch (error) {
+        console.error('Failed to fetch blog slugs:', error);
+      }
+    }
+    fetchValidSlugs();
+  }, []);
+
+  // Filter prompts based on valid slugs
+  const suggestedPrompts = useMemo(() => {
+    return filterValidPrompts(suggestedPromptsBase, validSlugs);
+  }, [validSlugs]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {

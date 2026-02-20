@@ -306,7 +306,7 @@ When responding to user queries about topics covered in blog posts, you MUST:
 
 1. Always use the search_documentation tool to find relevant blog posts for the topic
 2. Include clickable links to those blog posts using markdown format: [Post Title](/blog/post-slug)
-3. Place relevant links at the end of your response under a "Related Posts:" or "Read More:" section
+3. Place relevant links if they are found but not if they do not exist already at the end of your response under a "Related Posts:" or "Read More:" section
 4. Example format: [Your answer here...]
 
 ## Related Posts:
@@ -322,7 +322,7 @@ When responding to user queries about topics covered in blog posts, you MUST:
 3. Use get_site_info to explain the site's architecture
 4. Use list_skills to show technical expertise
 5. Use get_featured_projects to highlight key projects
-6. ALWAYS provide links to relevant blog posts using markdown format: [Title](/blog/slug)
+6. ALWAYS provide links to relevant blog posts using markdown format but never if they do not exist, do not make them up: [Title](/blog/slug)
 7. Be concise but informative
 8. Adapt your technical depth based on the query`;
   

@@ -14,6 +14,7 @@ import {
   executeTool
 } from '@/lib/ai/tools';
 import { defaultAgent, personas, type Persona } from '@/lib/ai/types';
+import { getAllBlogSlugs, blogPostExists } from '@/lib/blog';
 
 // Allow streaming responses up to 60 seconds
 export const maxDuration = 60;
@@ -476,44 +477,98 @@ function streamResponse(text: string) {
   });
 }
 
+// Helper to validate and filter blog links in responses
+function filterValidBlogLinks(links: { text: string; slug: string }[]): { text: string; slug: string }[] {
+  return links.filter(link => blogPostExists(link.slug));
+}
+
 function generateDemoResponse(userMessage: string, persona?: Persona): string {
   const query = userMessage.toLowerCase();
   const isRecruiter = persona?.id === 'recruiter';
   
+  // Get valid blog slugs for filtering
+  const validLocalLLMLinks = filterValidBlogLinks([
+    { text: "Ollama Guide", slug: "2025-12-19-langchain-ollama" },
+    { text: "Local LLM Integration", slug: "2025-11-08-local-llm-integration" },
+    { text: "llama.cpp Guide", slug: "2025-11-12-mastering-llama-cpp-local-llm-integration-guide" }
+  ]);
+  
+  const validAgentLinks = filterValidBlogLinks([
+    { text: "Creating AI Agents", slug: "2024-10-30-creating-ai-agents" },
+    { text: "Autonomous Architectures", slug: "2026-01-03-autonomous-architectures" },
+    { text: "Basic Autogen", slug: "2024-11-28-basic-autogen" }
+  ]);
+  
+  const validRAGLinks = filterValidBlogLinks([
+    { text: "Basic RAG", slug: "2024-12-01-basic-rag" },
+    { text: "Pydantic RAG", slug: "2024-12-09-pydantic-rag" },
+    { text: "Building Knowledge Chatbot", slug: "2026-02-19-building-knowledge-chatbot" }
+  ]);
+  
+  const validMCPLinks = filterValidBlogLinks([
+    { text: "MCP Guide", slug: "2025-03-24-model-context-protocol" },
+    { text: "MCP Integration", slug: "2025-12-09-mcp-integration-uncensored-chatbot" },
+    { text: "MCP with OpenAI", slug: "2025-03-12-mcp-openai-agents-sdk-ollama" }
+  ]);
+  
+  const validVibeCodingLinks = filterValidBlogLinks([
+    { text: "Rise of Vibe Coding", slug: "2025-11-02-rise-of-vibe-coding" },
+    { text: "Vibe Coding Guide", slug: "2025-10-20-how-to-vibe-code-a-nextjs-boilerplate-repo" },
+    { text: "Document-Driven Development", slug: "2025-11-03-document-driven-development-nextjs-blog" }
+  ]);
+  
+  const validSyntheticIntelLinks = filterValidBlogLinks([
+    { text: "Synthetic Intelligence", slug: "2026-01-25-synthetic-intelligence" },
+    { text: "Dynamic Persona MoE RAG", slug: "2026-01-22-dynamic-persona-moe-rag" },
+    { text: "From Scaffolding to Reality", slug: "2026-01-22-from-scaffolding-to-reality-building-the-dynamic-persona-moe-rag-system" }
+  ]);
+  
+  // Build link sections dynamically
+  const buildLinkSection = (links: { text: string; slug: string }[]) => {
+    if (links.length === 0) return "";
+    return links.map(l => `- [${l.text}](/blog/${l.slug})`).join('\n');
+  };
+  
   if (query.includes('local llm') || query.includes('ollama') || query.includes('llama.cpp')) {
+    const links = buildLinkSection(validLocalLLMLinks);
     return isRecruiter
       ? "Daniel has extensive experience with local LLMs including Ollama and llama.cpp. He's written several guides on running LLMs locally."
-      : "Great question! Daniel has written several blog posts about running local LLMs:\n\n**Local LLM Guides:**\n- [Ollama Guide](/blog/2025-12-19-langchain-ollama)\n- [Local LLM Integration](/blog/2025-11-08-local-llm-integration)\n- [llama.cpp Guide](/blog/2025-11-12-mastering-llama-cpp-local-llm-integration-guide)";
+      : `Great question! Daniel has written several blog posts about running local LLMs:\n\n**Local LLM Guides:**\n${links || "Check out the blog for more articles on local LLMs!"}`;
   }
   
   if (query.includes('agent') || query.includes('autonomous')) {
+    const links = buildLinkSection(validAgentLinks);
     return isRecruiter
       ? "Daniel has built multiple AI agent systems including autonomous architectures and multi-agent systems."
-      : "Here's what Daniel has written about AI agents:\n\n**AI Agents:**\n- [Creating AI Agents](/blog/2024-10-30-creating-ai-agents)\n- [Autonomous Architectures](/blog/2026-01-03-autonomous-architectures)\n- [Basic Autogen](/blog/2024-11-28-basic-autogen)";
+      : `Here's what Daniel has written about AI agents:\n\n**AI Agents:**\n${links || "Check out the blog for more articles on AI agents!"}`;
   }
   
   if (query.includes('rag') || query.includes('knowledge graph')) {
+    const links = buildLinkSection(validRAGLinks);
     return isRecruiter
       ? "Daniel has deep expertise in RAG systems including knowledge graph RAG implementations."
-      : "Here's Daniel's content on RAG systems:\n\n**RAG & Knowledge Graphs:**\n- [Basic RAG](/blog/2024-12-01-basic-rag)\n- [Pydantic RAG](/blog/2024-12-09-pydantic-rag)\n- [Building Knowledge Chatbot](/blog/2026-02-19-building-knowledge-chatbot)";
+      : `Here's Daniel's content on RAG systems:\n\n**RAG & Knowledge Graphs:**\n${links || "Check out the blog for more articles on RAG!"}`;
   }
   
   if (query.includes('mcp') || query.includes('model context')) {
+    const links = buildLinkSection(validMCPLinks);
     return isRecruiter
       ? "Daniel has implemented the Model Context Protocol (MCP) with various LLM providers."
-      : "Here's Daniel's content on MCP:\n\n**Model Context Protocol:**\n- [MCP Guide](/blog/2025-03-24-model-context-protocol)\n- [MCP Integration](/blog/2025-12-09-mcp-integration-uncensored-chatbot)\n- [MCP with OpenAI](/blog/2025-03-12-mcp-openai-agents-sdk-ollama)";
+      : `Here's Daniel's content on MCP:\n\n**Model Context Protocol:**\n${links || "Check out the blog for more articles on MCP!"}`;
   }
   
   if (query.includes('vibe coding')) {
+    const links = buildLinkSection(validVibeCodingLinks);
     return isRecruiter
       ? "Daniel is a strong advocate of vibe coding and document-driven development methodologies."
-      : "Here's Daniel's vibe coding content:\n\n**Vibe Coding:**\n- [Rise of Vibe Coding](/blog/2025-11-02-rise-of-vibe-coding)\n- [Vibe Coding Guide](/blog/2025-10-20-how-to-vibe-code-a-nextjs-boilerplate-repo)\n- [Document-Driven Development](/blog/2025-11-03-document-driven-development-nextjs-blog)";
+      : `Here's Daniel's vibe coding content:\n\n**Vibe Coding:**\n${links || "Check out the blog for more articles on vibe coding!"}`;
   }
   
   if (query.includes('synthetic intelligence') || query.includes('persona')) {
+    const links = buildLinkSection(validSyntheticIntelLinks);
     return isRecruiter
       ? "Daniel created a comprehensive synthetic intelligence system with dynamic personas."
-      : "Here's Daniel's work on synthetic intelligence:\n\n**Synthetic Intelligence:**\n- [Synthetic Intelligence](/blog/2026-01-25-synthetic-intelligence)\n- [Dynamic Persona MoE RAG](/blog/2026-01-22-dynamic-persona-moe-rag)\n- [From Scaffolding to Reality](/blog/2026-01-22-from-scaffolding-to-reality-building-the-dynamic-persona-moe-rag-system)";
+      : `Here's Daniel's work on synthetic intelligence:\n\n**Synthetic Intelligence:**\n${links || "Check out the blog for more articles on synthetic intelligence!"}`;
   }
   
   if (query.includes('search') || query.includes('find') || query.includes('blog')) {

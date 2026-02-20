@@ -152,3 +152,14 @@ export function getAllBlogSlugs(): string[] {
     .filter((fileName) => fileName.endsWith('.md'))
     .map((fileName) => fileName.replace(/\.md$/, ''));
 }
+
+// Check if a blog post exists by slug
+export function blogPostExists(slug: string): boolean {
+  const fullPath = path.join(blogDirectory, `${slug}.md`);
+  return fs.existsSync(fullPath);
+}
+
+// Validate an array of slugs and return only existing ones
+export function validateBlogSlugs(slugs: string[]): string[] {
+  return slugs.filter(slug => blogPostExists(slug));
+}
