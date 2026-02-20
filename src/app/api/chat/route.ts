@@ -1,11 +1,12 @@
 /**
  * AI Chat API Endpoint
  * Handles streaming chat requests with tool calling
- * Supports both Ollama (local) and Anthropic (cloud) providers
+ * Supports Ollama (local), Gemini (free tier), and Anthropic (cloud) providers
  */
 
 import { Ollama, type Message, type Tool, type ToolCall } from 'ollama';
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI, type Content, type Tool as GeminiTool } from '@google/generative-ai';
 import { z } from 'zod';
 import { 
   buildSystemPrompt, 
@@ -95,6 +96,40 @@ function getAnthropicTools() {
   }));
 }
 
+// ============== Gemini Functions ==============
+
+function isGeminiEnabled(): boolean {
+  return process.env.GEMINI_ENABLED === 'true';
+}
+
+function getGeminiApiKey(): string | null {
+  return process.env.GEMINI_API_KEY || null;
+}
+
+function getGeminiModel(): string {
+  return process.env.GEMINI_MODEL || 'gemini-1.5-flash-8b';
+}
+
+function getGeminiClient(): GoogleGenerativeAI | null {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  return new GoogleGenerativeAI(apiKey, {
+    apiVersion: 'v1'
+  });
+}
+
+function getGeminiTools(): GeminiTool[] {
+  return availableTools.map(tool => ({
+    functionDeclarations: [{
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters as any
+    }]
+  }));
+}
+
 // ============== Main Handler ==============
 
 export async function POST(req: Request) {
@@ -119,7 +154,9 @@ export async function POST(req: Request) {
     const provider = getLLMProvider();
     
     // Route to appropriate provider
-    if (provider === 'anthropic') {
+    if (provider === 'gemini') {
+      return await handleGemini(messages, persona, systemPrompt, temperature);
+    } else if (provider === 'anthropic') {
       return await handleAnthropic(messages, persona, systemPrompt, temperature);
     } else {
       return await handleOllama(messages, persona, systemPrompt, temperature);
@@ -271,6 +308,126 @@ async function handleAnthropic(
   return streamResponse(finalText);
 }
 
+// ============== Gemini Handler ==============
+
+async function handleGemini(
+  messages: { role: string; content: string }[],
+  persona: Persona | undefined,
+  systemPrompt: string,
+  temperature: number
+) {
+  const genAI = getGeminiClient();
+  
+  if (!genAI) {
+    console.log('Gemini not configured, using demo mode');
+    return handleDemoMode(messages, persona);
+  }
+  
+  const model = genAI.getGenerativeModel({
+    model: getGeminiModel(),
+    tools: getGeminiTools()
+  });
+  
+  // Build Gemini-style messages - filter out system messages
+  const geminiMessages: Content[] = messages
+    .filter(m => m.role !== 'system')
+    .map(m => {
+      // Map assistant/tool roles to model, user stays as user
+      const role = m.role === 'user' ? 'user' : 'model';
+      return {
+        role: role as 'user' | 'model',
+        parts: [{ text: m.content }]
+      };
+    });
+  
+  // Start chat with just system instruction, no initial history
+  // The user messages will be sent with sendMessage
+  const chat = model.startChat({
+    systemInstruction: {
+      role: 'system',
+      parts: [{ text: systemPrompt }]
+    },
+    generationConfig: {
+      temperature,
+      maxOutputTokens: 8192,
+    }
+  });
+  
+  // Send the first user message if exists
+  if (geminiMessages.length === 0) {
+    return streamResponse('Hello! How can I help you today?');
+  }
+  
+  // Get the last user message to send
+  const lastUserMessage = geminiMessages
+    .filter(m => m.role === 'user')
+    .pop();
+  
+  if (!lastUserMessage) {
+    return streamResponse('Hello! How can I help you today?');
+  }
+  
+  let finalText = '';
+  
+  for (let iteration = 0; iteration < 5; iteration++) {
+    // Send the user message content
+    const userContent = lastUserMessage.parts[0]?.text || '';
+    const result = await chat.sendMessage(userContent);
+    const response = result.response;
+    const candidate = response.candidates?.[0];
+    
+    if (!candidate?.content?.parts) break;
+    
+    // Check for function calls
+    const functionCalls = candidate.content.parts.filter(
+      (part): part is { functionCall: { name: string; args: Record<string, unknown> } } => 
+        'functionCall' in part
+    );
+    
+    if (functionCalls.length === 0) {
+      // Regular text response
+      const textParts = candidate.content.parts.filter(
+        (part): part is { text: string } => 'text' in part
+      );
+      finalText = textParts.map(p => p.text).join('');
+      break;
+    }
+    
+    // Handle function calls
+    for (const fc of functionCalls) {
+      const toolName = fc.functionCall.name;
+      const toolArgs = fc.functionCall.args;
+      
+      console.log(`Executing tool: ${toolName}`, toolArgs);
+      
+      try {
+        const toolResult = await executeTool(toolName, toolArgs);
+        
+        // Send tool result back to the model
+        const toolResponse = await chat.sendMessage([{
+          functionResponse: {
+            name: toolName,
+            response: { result: toolResult }
+          }
+        }]);
+        
+        // Get the model's response after tool use
+        const toolCandidate = toolResponse.response.candidates?.[0];
+        if (toolCandidate?.content?.parts) {
+          const textParts = toolCandidate.content.parts.filter(
+            (part): part is { text: string } => 'text' in part
+          );
+          finalText = textParts.map(p => p.text).join('');
+        }
+      } catch (error) {
+        finalText = JSON.stringify({ error: `Tool execution failed: ${error}` });
+      }
+    }
+  }
+  
+  return streamResponse(finalText);
+}
+
 // ============== Demo Mode ==============
 
 async function handleDemoMode(
@@ -340,7 +497,14 @@ export async function GET() {
   let status = 'demo_mode';
   let model = 'N/A';
   
-  if (provider === 'anthropic') {
+  if (provider === 'gemini') {
+    const apiKey = getGeminiApiKey();
+    const enabled = isGeminiEnabled();
+    if (apiKey && enabled) {
+      status = 'available';
+      model = getGeminiModel();
+    }
+  } else if (provider === 'anthropic') {
     const apiKey = getAnthropicApiKey();
     if (apiKey && apiKey !== 'your_anthropic_api_key_here') {
       status = 'available';
@@ -358,7 +522,7 @@ export async function GET() {
     JSON.stringify({
       api_status: 'ok',
       service: 'AI Chat API',
-      version: '4.0.0',
+      version: '5.0.0',
       availablePersonas: personas.map(p => p.id),
       features: ['streaming', 'tool_calling', 'persona_selection'],
       provider,
@@ -366,6 +530,7 @@ export async function GET() {
       status,
       configuration: {
         local_development: 'Use LLM_PROVIDER=ollama (default)',
+        gemini: 'Set LLM_PROVIDER=gemini, GEMINI_ENABLED=true',
         vercel_deployment: 'Set LLM_PROVIDER=anthropic and add ANTHROPIC_API_KEY to Vercel env vars'
       }
     }),

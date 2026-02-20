@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { SiteNav } from "@/components/site-nav";
-import { generateMetadata, siteConfig, generateJSONLD } from "@/lib/seo";
+import { generateMetadata, siteConfig, structuredData } from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,20 +30,25 @@ export const viewport: Viewport = {
   themeColor: "#000000",
 };
 
+// Generate JSON-LD as a string at build time to avoid hydration mismatch
+const jsonLd = JSON.stringify([
+  structuredData.website,
+  structuredData.person
+]);
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const jsonLd = generateJSONLD('website');
-  
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        {/* Structured Data for SEO */}
+        {/* Structured Data for SEO - use strategy="after-interactive" to avoid hydration mismatch */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLd }}
+          suppressHydrationWarning
         />
         {/* Additional SEO */}
         <link rel="canonical" href={siteConfig.url} />
