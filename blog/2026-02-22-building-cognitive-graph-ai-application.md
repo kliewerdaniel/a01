@@ -20,7 +20,10 @@ twitter:image: "/images/1019010.png"
 
 ![Cognitive Graph AI Architecture](/images/1019010.png)
 
+
 # Building a Cognitive Graph AI Application: A Comprehensive Guide
+
+[Follow along with the code here!](https://github.com/kliewerdaniel/cogGraph)
 
 ## Introduction
 
