@@ -504,3 +504,6 @@ User → Personal Infrastructure → Intelligence
 The model belongs to you.
 The data belongs to you.
 And the system can evolve however you want.
+
+
+[If you demand better performance than what Ollama offers you can always use llama.cpp instead. I show the basics of llama.cpp here.](https://www.danielkliewer.com/blog/2025-11-12-mastering-llama-cpp-local-llm-integration-guide)
