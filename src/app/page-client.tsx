@@ -238,7 +238,7 @@ export default function HomeClient({ posts: blogPosts }: HomeClientProps) {
             </motion.p>
 
             <motion.div 
-              className="flex flex-wrap gap-4 justify-center"
+              className="flex flex-wrap gap-4 justify-center items-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
@@ -271,6 +271,20 @@ export default function HomeClient({ posts: blogPosts }: HomeClientProps) {
                 >
                   About Me
                 </Button>
+              </Link>
+            </motion.div>
+
+            <motion.div
+              className="mt-8"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <Link 
+                href="/contracting"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+              >
+                Enterprise AI contracting →
               </Link>
             </motion.div>
           </div>
